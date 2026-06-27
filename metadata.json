@@ -1,0 +1,6 @@
+{
+  "name": "RentHub",
+  "description": "A comprehensive real estate rental platform with booking management and integrated payment processing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
