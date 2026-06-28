@@ -82,6 +82,15 @@ export default function App() {
     fetchBookings();
   }, [currentUser.role, currentTab]);
 
+  useEffect(() => {
+    if (currentUser.role === 'renter' && currentTab === 'owner-dashboard') {
+      setCurrentTab('explore');
+    }
+    if (currentUser.role === 'owner' && currentTab === 'renter-dashboard') {
+      setCurrentTab('owner-dashboard');
+    }
+  }, [currentUser.role, currentTab]);
+
   // Handle Action: Add New Listing
   const handleCreateListing = async (listingData: Omit<PropertyListing, 'id' | 'rating' | 'reviewsCount'>) => {
     try {
@@ -111,6 +120,10 @@ export default function App() {
     nights: number;
     totalPrice: number;
   }) => {
+    if (currentUser.role !== 'renter') {
+      alert('Only renters can book stays. Please switch to renter mode to book.');
+      return;
+    }
     if (!selectedProperty) return;
     
     // Close the details modal and open checkout
@@ -268,6 +281,7 @@ export default function App() {
       {selectedProperty && (
         <PropertyDetailsModal
           property={selectedProperty}
+          userRole={currentUser.role}
           onClose={() => setSelectedProperty(null)}
           onInitiateBooking={handleInitiateBooking}
         />

@@ -49,10 +49,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="tab-btn-renter"
               onClick={() => setCurrentTab('renter-dashboard')}
+              disabled={currentUser.role !== 'renter'}
               className={`px-4 py-2 rounded-lg font-sans text-sm font-medium transition-all ${
                 currentTab === 'renter-dashboard'
                   ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  : currentUser.role !== 'renter'
+                    ? 'text-gray-300 cursor-not-allowed opacity-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               My Bookings
@@ -60,10 +63,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="tab-btn-owner"
               onClick={() => setCurrentTab('owner-dashboard')}
+              disabled={currentUser.role !== 'owner'}
               className={`px-4 py-2 rounded-lg font-sans text-sm font-medium transition-all ${
                 currentTab === 'owner-dashboard'
                   ? 'bg-emerald-50 text-emerald-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  : currentUser.role !== 'owner'
+                    ? 'text-gray-300 cursor-not-allowed opacity-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               Host Dashboard
@@ -73,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* User Persona & Mobile Selector */}
           <div className="flex items-center space-x-3">
             <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl p-1.5" id="user-persona-toggle">
-              <span className="text-xs text-gray-500 font-mono px-2 hidden lg:inline">Simulation Persona:</span>
+              <span className="text-xs text-gray-500 font-mono px-2 hidden lg:inline">Role:</span>
               <button
                 id="persona-renter-toggle"
                 onClick={() => {
@@ -82,6 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     email: "yosefmelaku9876@gmail.com",
                     role: 'renter'
                   });
+                  setCurrentTab('explore');
                 }}
                 className={`text-xs px-3 py-1.5 rounded-lg font-sans font-medium transition-all ${
                   currentUser.role === 'renter'
@@ -89,7 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                Guest
+                Renter
               </button>
               <button
                 id="persona-owner-toggle"
@@ -99,6 +106,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     email: "host.premium@luxerent.com",
                     role: 'owner'
                   });
+                  setCurrentTab('owner-dashboard');
                 }}
                 className={`text-xs px-3 py-1.5 rounded-lg font-sans font-medium transition-all ${
                   currentUser.role === 'owner'
@@ -106,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
-                Host
+                Owner
               </button>
             </div>
 
