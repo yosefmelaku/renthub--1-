@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, type FormEvent, type FC } from 'react';
 
 interface LoginPageProps {
   onLogin: (user: { name: string; email: string; role: 'renter' | 'owner' }) => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+export const LoginPage: FC<LoginPageProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'renter' | 'owner'>('renter');
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!email.trim()) {
       alert('Please enter your email address to continue.');
