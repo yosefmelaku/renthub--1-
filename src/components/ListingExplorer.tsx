@@ -40,9 +40,13 @@ export const ListingExplorer: React.FC<ListingExplorerProps> = ({ listings, onSe
 
   const filteredListings = useMemo(() => {
     return listings.filter((property) => {
-      const matchesSearch = 
-        property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        property.location.toLowerCase().includes(searchTerm.toLowerCase());
+      const normalizedSearch = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        property.title.toLowerCase().includes(normalizedSearch) ||
+        property.location.toLowerCase().includes(normalizedSearch) ||
+        property.id?.toLowerCase().includes(normalizedSearch) ||
+        property.description.toLowerCase().includes(normalizedSearch) ||
+        property.amenities?.some((amenity) => amenity.toLowerCase().includes(normalizedSearch));
       
       const matchesType = selectedType === 'all' || property.type === selectedType;
       const matchesPrice = property.price <= maxPrice;

@@ -6,6 +6,7 @@ import { PropertyDetailsModal } from './components/PropertyDetailsModal';
 import { CheckoutPaymentModal } from './components/CheckoutPaymentModal';
 import { RenterDashboard } from './components/RenterDashboard';
 import { OwnerDashboard } from './components/OwnerDashboard';
+import { LoginPage } from './components/LoginPage';
 import { 
   getAllListings, 
   createListing, 
@@ -21,11 +22,8 @@ import { ShieldCheck, Heart } from 'lucide-react';
 export default function App() {
   // Navigation & Simulation State
   const [currentTab, setCurrentTab] = useState<'explore' | 'renter-dashboard' | 'owner-dashboard'>('explore');
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: 'renter' | 'owner' }>({
-    name: "Yosef Melaku",
-    email: "yosefmelaku9876@gmail.com",
-    role: "renter"
-  });
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: 'renter' | 'owner' } | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // DB Collections State
   const [listings, setListings] = useState<PropertyListing[]>([]);
@@ -79,17 +77,25 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!currentUser) return;
     fetchBookings();
-  }, [currentUser.role, currentTab]);
+  }, [currentUser?.role, currentTab, currentUser]);
 
   useEffect(() => {
+    if (!currentUser) return;
     if (currentUser.role === 'renter' && currentTab === 'owner-dashboard') {
       setCurrentTab('explore');
     }
     if (currentUser.role === 'owner' && currentTab === 'renter-dashboard') {
       setCurrentTab('owner-dashboard');
     }
-  }, [currentUser.role, currentTab]);
+  }, [currentUser?.role, currentTab, currentUser]);
+
+  const handleLogin = (user: { name: string; email: string; role: 'renter' | 'owner' }) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    setCurrentTab(user.role === 'owner' ? 'owner-dashboard' : 'explore');
+  };
 
   // Handle Action: Add New Listing
   const handleCreateListing = async (listingData: Omit<PropertyListing, 'id' | 'rating' | 'reviewsCount'>) => {
@@ -197,6 +203,10 @@ export default function App() {
       console.error("Failed to update booking status:", err);
     }
   };
+
+  if (!isAuthenticated || !currentUser) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between" id="app-root-layout">
