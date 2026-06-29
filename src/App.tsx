@@ -23,7 +23,6 @@ export default function App() {
   // Navigation & Simulation State
   const [currentTab, setCurrentTab] = useState<'explore' | 'renter-dashboard' | 'owner-dashboard'>('explore');
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: 'renter' | 'owner' } | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   // DB Collections State
@@ -57,6 +56,7 @@ export default function App() {
 
   // Fetch Bookings based on persona
   const fetchBookings = async () => {
+    if (!currentUser) return;
     setLoadingBookings(true);
     try {
       if (currentUser.role === 'renter') {
@@ -106,7 +106,6 @@ export default function App() {
 
   const handleLogin = (user: { name: string; email: string; role: 'renter' | 'owner' }) => {
     setCurrentUser(user);
-    setIsAuthenticated(true);
     setLoginModalOpen(false);
     setCurrentTab(user.role === 'owner' ? 'owner-dashboard' : 'explore');
   };
@@ -114,7 +113,6 @@ export default function App() {
   const openLoginModal = () => setLoginModalOpen(true);
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
     setCurrentUser(null);
     setLoginModalOpen(false);
     setCurrentTab('explore');
@@ -224,7 +222,8 @@ export default function App() {
           currentTab={currentTab}
           setCurrentTab={setCurrentTab}
           currentUser={currentUser}
-          setCurrentUser={setCurrentUser}
+          onLoginClick={openLoginModal}
+          onLogout={handleLogout}
         />
 
         {/* Primary Page Canvas */}
@@ -276,6 +275,7 @@ export default function App() {
             </div>
           )}
         </main>
+        {loginModalOpen && <LoginPage onLogin={handleLogin} onClose={() => setLoginModalOpen(false)} />}
       </div>
 
       {/* FOOTER SECTION */}

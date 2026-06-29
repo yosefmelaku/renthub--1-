@@ -2,9 +2,10 @@ import { useState, type FormEvent, type FC } from 'react';
 
 interface LoginPageProps {
   onLogin: (user: { name: string; email: string; role: 'renter' | 'owner' }) => void;
+  onClose: () => void;
 }
 
-export const LoginPage: FC<LoginPageProps> = ({ onLogin }) => {
+export const LoginPage: FC<LoginPageProps> = ({ onLogin, onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'renter' | 'owner'>('renter');
@@ -25,10 +26,23 @@ export const LoginPage: FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4 py-10">
-      <div className="max-w-4xl w-full bg-slate-900/95 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-3xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200">
+        <div className="flex justify-between items-center px-6 py-5 border-b border-slate-200">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-emerald-600 font-semibold">Login</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900">Sign in to continue browsing and booking.</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-900 rounded-full p-2"
+          >
+            ×
+          </button>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-          <div className="px-8 py-10 lg:px-12 lg:py-12 border-b border-white/10 lg:border-b-0 lg:border-r border-white/10">
+          <div className="px-8 py-10 lg:px-12 lg:py-12">
             <div className="space-y-5">
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
                 <span className="font-semibold">RentHub</span>
