@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { PropertyListing, Booking } from '../types';
 import { 
   TrendingUp, DollarSign, CalendarCheck2, LayoutGrid, PlusCircle, CheckCircle, XCircle, 
-  Trash2, Image, Sparkles, Building, Bed, Bath, Plus, MapPin, RefreshCw, Upload
+  Trash2, Image, Sparkles, Building, Bed, Bath, Plus, MapPin, RefreshCw, Upload, Wrench,
+  AlertTriangle, Clock3
 } from 'lucide-react';
 
 interface OwnerDashboardProps {
@@ -24,8 +25,8 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   loading,
   onRefresh,
 }) => {
-  // Tabs: 'stats' | 'listings' | 'bookings' | 'add'
-  const [activeSubTab, setActiveSubTab] = useState<'stats' | 'listings' | 'bookings' | 'add'>('stats');
+  // Tabs: 'stats' | 'listings' | 'bookings' | 'add' | 'maintenance'
+  const [activeSubTab, setActiveSubTab] = useState<'stats' | 'listings' | 'bookings' | 'add' | 'maintenance'>('stats');
 
   // Form State
   const [title, setTitle] = useState('');
@@ -40,6 +41,11 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [amenities, setAmenities] = useState<string[]>(['Fast Wi-Fi', 'AC', 'Workspace']);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
+  const [maintenanceRequests, setMaintenanceRequests] = useState([
+    { id: 'req-101', property: 'Cliffside Villa', guest: 'Talia S.', issue: 'HVAC cooling sporadic after midnight', priority: 'high', status: 'Open', updatedAt: '12 min ago' },
+    { id: 'req-102', property: 'Harbor Loft', guest: 'Mina K.', issue: 'Smart lock battery warning', priority: 'medium', status: 'In Review', updatedAt: '37 min ago' },
+    { id: 'req-103', property: 'Skyline Residence', guest: 'Noah R.', issue: 'Kitchen appliance not responding', priority: 'high', status: 'Resolved', updatedAt: '1 hr ago' },
+  ]);
 
   // Curated list of premium royalty-free images to let user auto-fill
   const PRESET_IMAGES = [
@@ -82,6 +88,13 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     };
   }, [ownerBookings, ownerListings]);
 
+  const dispatchSummary = useMemo(() => {
+    const openCount = maintenanceRequests.filter((request) => request.status === 'Open').length;
+    const reviewCount = maintenanceRequests.filter((request) => request.status === 'In Review').length;
+    const resolvedCount = maintenanceRequests.filter((request) => request.status === 'Resolved').length;
+    return { openCount, reviewCount, resolvedCount };
+  }, [maintenanceRequests]);
+
   const handleAddAmenity = () => {
     if (customAmenity.trim() && !amenities.includes(customAmenity.trim())) {
       setAmenities([...amenities, customAmenity.trim()]);
@@ -91,6 +104,10 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
   const handleRemoveAmenity = (name: string) => {
     setAmenities(amenities.filter(a => a !== name));
+  };
+
+  const handleMaintenanceStatusChange = (requestId: string, nextStatus: string) => {
+    setMaintenanceRequests((prev) => prev.map((request) => request.id === requestId ? { ...request, status: nextStatus } : request));
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -204,6 +221,17 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
           }`}
         >
           Guest Stays Queue ({ownerBookings.length})
+        </button>
+        <button
+          id="btn-subtab-maintenance"
+          onClick={() => setActiveSubTab('maintenance')}
+          className={`px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+            activeSubTab === 'maintenance'
+              ? 'border-emerald-600 text-emerald-700 font-bold'
+              : 'border-transparent text-gray-500 hover:text-gray-900'
+          }`}
+        >
+          Maintenance & Dispatch
         </button>
       </div>
 
@@ -420,6 +448,72 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
               <p className="text-xs text-gray-500">Guests haven't requested bookings on your active properties yet.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* SUB-TAB: MAINTENANCE & DISPATCH */}
+      {activeSubTab === 'maintenance' && (
+        <div className="space-y-4" id="subtab-panel-maintenance">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Open Alerts</span>
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+              </div>
+              <p className="mt-3 text-2xl font-extrabold text-gray-900">{dispatchSummary.openCount}</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">In Review</span>
+                <Clock3 className="h-4 w-4 text-blue-500" />
+              </div>
+              <p className="mt-3 text-2xl font-extrabold text-gray-900">{dispatchSummary.reviewCount}</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Resolved</span>
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+              </div>
+              <p className="mt-3 text-2xl font-extrabold text-gray-900">{dispatchSummary.resolvedCount}</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-emerald-600" />
+              <h3 className="text-sm font-semibold text-gray-900">Dispatch Queue</h3>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {maintenanceRequests.map((request) => (
+                <div key={request.id} className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{request.property}</p>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${request.priority === 'high' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'}`}>
+                        {request.priority}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{request.guest} • {request.issue}</p>
+                    <p className="text-[11px] text-gray-400 mt-1">Updated {request.updatedAt}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${request.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700' : request.status === 'In Review' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                      {request.status}
+                    </span>
+                    <select
+                      value={request.status}
+                      onChange={(event) => handleMaintenanceStatusChange(request.id, event.target.value)}
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2 text-xs text-gray-700"
+                    >
+                      <option value="Open">Open</option>
+                      <option value="In Review">In Review</option>
+                      <option value="Resolved">Resolved</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
