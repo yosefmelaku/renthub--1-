@@ -143,10 +143,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   type="button"
                   onClick={onLoginClick}
-                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 inline-flex items-center gap-2"
+                  aria-label="Sign in"
+                  className="rounded-full border border-emerald-200 bg-emerald-50 p-2.5 text-emerald-700 transition hover:bg-emerald-100"
                 >
                   <Lock className="h-4 w-4" />
-                  Login / Sign Up
                 </button>
               )}
             </div>

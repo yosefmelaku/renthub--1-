@@ -242,14 +242,6 @@ export default function App() {
   const paidBookings = bookings.filter(booking => booking.paymentStatus === 'paid').length;
   const activeListingsCount = listings.length;
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <LoginPage onLogin={handleAuthSuccess} onClose={() => setLoginModalOpen(false)} />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between" id="app-root-layout">
       <div>
