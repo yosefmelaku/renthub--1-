@@ -20,8 +20,10 @@ import {
 } from './lib/firebase';
 import { ShieldCheck, Heart, Users, Building2, DollarSign, Clock3 } from 'lucide-react';
 
+type AppTab = 'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin';
+
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin'>('explore');
+  const [currentTab, setCurrentTab] = useState<AppTab>('explore');
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
@@ -106,13 +108,44 @@ export default function App() {
     }
   };
 
-  const handleLogin = (user: AppUser) => {
+  const handleAuthSuccess = (user: AppUser) => {
     setCurrentUser(user);
     setLoginModalOpen(false);
     setCurrentTab(user.role === 'owner' ? 'owner-dashboard' : user.role === 'super-admin' ? 'super-admin' : 'explore');
   };
 
   const openLoginModal = () => setLoginModalOpen(true);
+
+  const handleTabChange = (nextTab: AppTab) => {
+    if (nextTab === 'renter-dashboard' && currentUser?.role !== 'renter') {
+      if (!currentUser) {
+        setLoginModalOpen(true);
+        return;
+      }
+      alert('Please sign in as a renter to open your bookings dashboard.');
+      return;
+    }
+
+    if (nextTab === 'owner-dashboard' && currentUser?.role !== 'owner') {
+      if (!currentUser) {
+        setLoginModalOpen(true);
+        return;
+      }
+      alert('Please sign in as a host to open the owner dashboard.');
+      return;
+    }
+
+    if (nextTab === 'super-admin' && currentUser?.role !== 'super-admin') {
+      if (!currentUser) {
+        setLoginModalOpen(true);
+        return;
+      }
+      alert('Only the super-admin persona can access the platform control center.');
+      return;
+    }
+
+    setCurrentTab(nextTab);
+  };
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -209,12 +242,20 @@ export default function App() {
   const paidBookings = bookings.filter(booking => booking.paymentStatus === 'paid').length;
   const activeListingsCount = listings.length;
 
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <LoginPage onLogin={handleAuthSuccess} onClose={() => setLoginModalOpen(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between" id="app-root-layout">
       <div>
         <Navbar
           currentTab={currentTab}
-          setCurrentTab={setCurrentTab}
+          setCurrentTab={handleTabChange}
           currentUser={currentUser}
           globalSearchTerm={globalSearchTerm}
           setGlobalSearchTerm={setGlobalSearchTerm}
