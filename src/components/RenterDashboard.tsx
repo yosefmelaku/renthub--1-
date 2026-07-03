@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Booking, PropertyListing } from '../types';
-import { Calendar, CreditCard, Receipt, FileText, Compass, AlertCircle, RefreshCw, Star, MapPin, ChevronDown, ChevronUp, Bed, Bath, Sparkles, Building2 } from 'lucide-react';
+import { Calendar, CreditCard, Receipt, FileText, Compass, AlertCircle, RefreshCw, Star, MapPin, ChevronDown, ChevronUp, Bed, Bath, Sparkles, Building2, Wrench, MessageSquareText } from 'lucide-react';
 
 interface RenterDashboardProps {
   bookings: Booking[];
@@ -21,6 +21,7 @@ export const RenterDashboard: React.FC<RenterDashboardProps> = ({
 }) => {
   const [selectedReceipt, setSelectedReceipt] = useState<Booking | null>(null);
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
+  const [maintenanceIssue, setMaintenanceIssue] = useState<Record<string, string>>({});
 
   const getStatusColor = (status: Booking['status']) => {
     switch (status) {
@@ -199,7 +200,7 @@ export const RenterDashboard: React.FC<RenterDashboardProps> = ({
                       </div>
 
                       {isExpanded && (
-                        <div className="mt-3 bg-gray-50/70 border border-gray-100/50 rounded-xl p-4 space-y-3 animate-fadeIn">
+                        <div className="mt-3 bg-gray-50/70 border border-gray-100/50 rounded-xl p-4 space-y-4 animate-fadeIn">
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                             <div className="flex items-center gap-1.5 text-gray-700 font-sans">
                               <Building2 className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -215,12 +216,21 @@ export const RenterDashboard: React.FC<RenterDashboardProps> = ({
                             </div>
                           </div>
 
-                          {property.description && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="space-y-1">
                               <h5 className="text-[10px] uppercase font-sans font-bold tracking-wider text-gray-400">About this property</h5>
                               <p className="text-xs text-gray-600 leading-relaxed font-sans">{property.description}</p>
                             </div>
-                          )}
+                            <div className="space-y-1">
+                              <h5 className="text-[10px] uppercase font-sans font-bold tracking-wider text-gray-400">Stay Snapshot</h5>
+                              <div className="rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-600 space-y-1">
+                                <p><span className="font-semibold text-gray-800">Check-in:</span> {booking.startDate}</p>
+                                <p><span className="font-semibold text-gray-800">Check-out:</span> {booking.endDate}</p>
+                                <p><span className="font-semibold text-gray-800">Stay length:</span> {booking.nights} nights</p>
+                                <p><span className="font-semibold text-gray-800">Booking status:</span> {booking.status}</p>
+                              </div>
+                            </div>
+                          </div>
 
                           {property.amenities && property.amenities.length > 0 && (
                             <div className="space-y-1">
@@ -235,6 +245,38 @@ export const RenterDashboard: React.FC<RenterDashboardProps> = ({
                               </div>
                             </div>
                           )}
+
+                          <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 space-y-2">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                              <Wrench className="h-4 w-4" />
+                              <span>AI Maintenance Desk</span>
+                            </div>
+                            <p className="text-xs text-emerald-800">Need help with a device, lock, or appliance? Submit a smart service request and our dispatch system will route it instantly.</p>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <input
+                                type="text"
+                                value={maintenanceIssue[booking.id] ?? ''}
+                                onChange={(event) => setMaintenanceIssue((prev) => ({ ...prev, [booking.id]: event.target.value }))}
+                                placeholder="Describe the issue"
+                                className="flex-1 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-emerald-400"
+                              />
+                              <button
+                                type="button"
+                                className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+                                onClick={() => {
+                                  const issue = (maintenanceIssue[booking.id] ?? '').trim();
+                                  if (!issue) {
+                                    alert('Please describe the maintenance issue before submitting.');
+                                    return;
+                                  }
+                                  alert(`Maintenance request submitted for ${booking.listingTitle || 'your stay'}: ${issue}`);
+                                  setMaintenanceIssue((prev) => ({ ...prev, [booking.id]: '' }));
+                                }}
+                              >
+                                Request Help
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

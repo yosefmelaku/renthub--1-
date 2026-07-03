@@ -419,7 +419,7 @@ export default function App() {
           )}
         </main>
 
-        {loginModalOpen && <LoginPage onLogin={handleLogin} onClose={() => setLoginModalOpen(false)} />}
+        {loginModalOpen && <LoginPage onLogin={handleAuthSuccess} onClose={() => setLoginModalOpen(false)} />}
       </div>
 
       <footer className="bg-white border-t border-gray-100 py-6 mt-12" id="app-footer">
