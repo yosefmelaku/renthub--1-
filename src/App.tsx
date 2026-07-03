@@ -117,30 +117,25 @@ export default function App() {
   const openLoginModal = () => setLoginModalOpen(true);
 
   const handleTabChange = (nextTab: AppTab) => {
-    if (nextTab === 'renter-dashboard' && currentUser?.role !== 'renter') {
-      if (!currentUser) {
-        setLoginModalOpen(true);
-        return;
-      }
-      alert('Please sign in as a renter to open your bookings dashboard.');
+    if (nextTab === 'explore') {
+      setCurrentTab('explore');
       return;
     }
 
-    if (nextTab === 'owner-dashboard' && currentUser?.role !== 'owner') {
-      if (!currentUser) {
-        setLoginModalOpen(true);
-        return;
-      }
-      alert('Please sign in as a host to open the owner dashboard.');
-      return;
-    }
-
-    if (nextTab === 'super-admin' && currentUser?.role !== 'super-admin') {
-      if (!currentUser) {
-        setLoginModalOpen(true);
-        return;
-      }
-      alert('Only the super-admin persona can access the platform control center.');
+    if (!currentUser) {
+      const demoUser: AppUser =
+        nextTab === 'owner-dashboard'
+          ? { name: 'Demo Host', email: 'owner_default', role: 'owner' }
+          : nextTab === 'super-admin'
+            ? { name: 'System Admin', email: 'admin@renthub.app', role: 'super-admin' }
+            : { name: 'Demo Renter', email: 'demo.renter@renthub.app', role: 'renter' };
+      setCurrentUser(demoUser);
+    } else if (
+      (nextTab === 'renter-dashboard' && currentUser.role !== 'renter') ||
+      (nextTab === 'owner-dashboard' && currentUser.role !== 'owner') ||
+      (nextTab === 'super-admin' && currentUser.role !== 'super-admin')
+    ) {
+      alert('This dashboard is reserved for the matching persona. Use the sign-in icon to switch roles if needed.');
       return;
     }
 
