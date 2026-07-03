@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { PropertyListing } from '../types';
 import { PropertyCard } from './PropertyCard';
-import { Search, SlidersHorizontal, Check, X, Building, Compass, Sparkles, Home, Bed } from 'lucide-react';
+import { Search, SlidersHorizontal, Check, X, Building, Compass, Sparkles, Home, Bed, ShieldCheck, Zap, Layers3 } from 'lucide-react';
 
 interface ListingExplorerProps {
   listings: PropertyListing[];
+  searchTerm: string;
+  onSearchTermChange: (value: string) => void;
   onSelectProperty: (property: PropertyListing) => void;
 }
 
-export const ListingExplorer: React.FC<ListingExplorerProps> = ({ listings, onSelectProperty }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+export const ListingExplorer: React.FC<ListingExplorerProps> = ({ listings, searchTerm, onSearchTermChange, onSelectProperty }) => {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(3000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
@@ -32,7 +33,7 @@ export const ListingExplorer: React.FC<ListingExplorerProps> = ({ listings, onSe
   };
 
   const clearFilters = () => {
-    setSearchTerm('');
+    onSearchTermChange('');
     setSelectedType('all');
     setMaxPrice(3000);
     setSelectedAmenities([]);
@@ -76,6 +77,25 @@ export const ListingExplorer: React.FC<ListingExplorerProps> = ({ listings, onSe
           <p className="text-gray-400 text-sm sm:text-base leading-relaxed">
             Exquisite design, breathtaking views, and verified premium comforts. Securely book and pay instantly for your next short or long-term residence.
           </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 pt-2">
+            {[
+              { title: 'Full-Stack Flow', description: 'React UI backed by Firebase data and payments', icon: Layers3 },
+              { title: 'Role-Based Access', description: 'Renter, owner, and super-admin portals', icon: ShieldCheck },
+              { title: 'Live Search', description: 'Search homes by title, place, ID, or amenities', icon: Zap },
+              { title: 'Secure Booking', description: 'Approve requests and manage transactions in one view', icon: Building },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 text-emerald-300">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm font-semibold">{item.title}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-300">{item.description}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -90,7 +110,7 @@ export const ListingExplorer: React.FC<ListingExplorerProps> = ({ listings, onSe
               type="text"
               placeholder="Search homes by title, city, state, or location..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => onSearchTermChange(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-sans text-sm placeholder:text-gray-400 focus:outline-hidden focus:border-emerald-500 focus:bg-white transition-all"
             />
           </div>
