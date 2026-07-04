@@ -83,6 +83,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [showMaintenanceFilterPanel, setShowMaintenanceFilterPanel] = useState(false);
   const [maintenancePriorityFilters, setMaintenancePriorityFilters] = useState<string[]>([]);
   const [maintenanceCompletedIn, setMaintenanceCompletedIn] = useState('Last 60 days');
+  const [showUpgradePage, setShowUpgradePage] = useState(false);
+  const [upgradeUnits, setUpgradeUnits] = useState(3);
+  const [showFullPlanFeatures, setShowFullPlanFeatures] = useState(false);
 
   const PRESET_IMAGES = [
     { name: "Executive Office", url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80" },
@@ -337,7 +340,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         {/* LandlordStudio trial warning banner at the top */}
         <div className="bg-[#ff9f00] text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-sm">
           <Info className="h-4 w-4 fill-white text-[#ff9f00]" />
-          <span>Trial ends in 14 days. <span className="underline cursor-pointer hover:text-amber-50">Upgrade Now</span></span>
+          <span>Trial ends in 14 days. <span className="underline cursor-pointer hover:text-amber-50" onClick={() => setShowUpgradePage(true)}>Upgrade Now</span></span>
         </div>
 
         {/* TOP INTERACTIVE CONTROLS BAR */}
@@ -1636,6 +1639,199 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         </main>
       </div>
 
+
+      {/* UPGRADE SUBSCRIPTION FULL-PAGE OVERLAY */}
+      {showUpgradePage && (
+        <div className="fixed inset-0 z-[100] bg-white overflow-y-auto">
+          {/* Top bar */}
+          <div className="bg-[#ff9f00] text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5">
+            <Info className="h-4 w-4 fill-white text-[#ff9f00]" />
+            <span>Trial ends in 14 days. <span className="underline cursor-pointer">Upgrade Now</span></span>
+          </div>
+
+          {/* Header */}
+          <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500 text-white p-2 rounded-xl"><Building2 className="h-5 w-5" /></div>
+              <span className="font-extrabold text-slate-900 text-base">Landlord<span className="text-emerald-500">Studio</span></span>
+            </div>
+            <button onClick={() => setShowUpgradePage(false)} className="text-slate-500 hover:text-slate-800 text-2xl font-bold cursor-pointer px-2">&times;</button>
+          </div>
+
+          <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+
+            {/* Plan cards row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Go - Free */}
+              <div className="border border-slate-200 rounded-2xl p-6 space-y-4 bg-white">
+                <div>
+                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Go</p>
+                  <p className="text-2xl font-extrabold text-slate-900 mt-1">Free</p>
+                  <p className="text-xs text-slate-500 mt-2">For new landlords managing 1–3 units</p>
+                </div>
+                <button disabled className="w-full bg-slate-100 text-slate-400 font-bold text-sm py-2.5 rounded-xl cursor-default">
+                  Current plan
+                </button>
+              </div>
+
+              {/* Pro - Most Popular */}
+              <div className="border-2 border-blue-500 rounded-2xl p-6 space-y-4 bg-white relative shadow-lg">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-blue-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full">Most Popular</span>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Pro</p>
+                  <p className="text-2xl font-extrabold text-slate-900 mt-1">$12.00<span className="text-sm font-medium text-slate-500">/mo</span></p>
+                  <p className="text-xs text-slate-500 mt-2">Growing landlords managing multiple units</p>
+                </div>
+                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition">
+                  Upgrade to Pro
+                </button>
+              </div>
+
+              {/* Pro Plus - Premium */}
+              <div className="border-2 border-slate-800 rounded-2xl p-6 space-y-4 bg-white relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-slate-800 text-white text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full">Premium Plan</span>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Pro Plus</p>
+                  <p className="text-2xl font-extrabold text-slate-900 mt-1">$28.00<span className="text-sm font-medium text-slate-500">/mo</span></p>
+                  <p className="text-xs text-slate-500 mt-2">Portfolio landlords needing advanced automation</p>
+                </div>
+                <button className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition">
+                  Upgrade to Pro Plus
+                </button>
+              </div>
+            </div>
+
+            {/* Full plan features toggle */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+              <button
+                onClick={() => setShowFullPlanFeatures(v => !v)}
+                className="w-full flex items-center justify-center gap-2 py-4 text-sm font-semibold text-slate-700 hover:text-slate-900 cursor-pointer transition"
+              >
+                Full plan features
+                <ChevronDown className={`h-4 w-4 transition-transform ${showFullPlanFeatures ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showFullPlanFeatures && (
+                <div className="border-t border-slate-200">
+                  {/* Unit selector */}
+                  <div className="px-6 py-5 border-b border-slate-200 flex items-center gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Number of property units</p>
+                    </div>
+                    <div className="flex items-center gap-3 ml-auto">
+                      <button
+                        onClick={() => setUpgradeUnits(u => Math.max(1, u - 1))}
+                        className="w-8 h-8 rounded-lg border border-slate-300 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer font-bold text-lg"
+                      >−</button>
+                      <span className="text-base font-bold text-slate-800 w-6 text-center">{upgradeUnits}</span>
+                      <button
+                        onClick={() => setUpgradeUnits(u => u + 1)}
+                        className="w-8 h-8 rounded-lg border border-slate-300 flex items-center justify-center text-slate-600 hover:bg-slate-100 cursor-pointer font-bold text-lg"
+                      >+</button>
+                    </div>
+                  </div>
+
+                  {/* Feature comparison table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left px-6 py-4 font-semibold text-slate-600 w-1/4"></th>
+                          <th className="px-4 py-4 text-center w-1/4">
+                            <p className="font-semibold text-slate-700">Go</p>
+                            <p className="text-slate-400 text-xs font-medium">Free</p>
+                            <button disabled className="mt-2 w-full bg-slate-100 text-slate-400 text-xs font-bold py-2 rounded-lg cursor-default">Current Plan</button>
+                          </th>
+                          <th className="px-4 py-4 text-center w-1/4 bg-blue-50">
+                            <p className="font-bold text-blue-700">Pro</p>
+                            <p className="text-slate-500 text-xs font-medium">$12.00/mo</p>
+                            <button className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition">Upgrade to Pro</button>
+                          </th>
+                          <th className="px-4 py-4 text-center w-1/4">
+                            <p className="font-bold text-slate-800">Pro Plus</p>
+                            <p className="text-slate-500 text-xs font-medium">$28.00/mo</p>
+                            <button className="mt-2 w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition">Upgrade to Pro Plus</button>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {[
+                          {
+                            label: "Who's it for?",
+                            go: "New landlords managing 1–3 units, listing properties manually, and tracking finances in spreadsheets",
+                            pro: "Growing landlords managing multiple units who want to automate accounting and reporting",
+                            proplus: "Portfolio landlords & property managers needing advanced automation, multi-user access, and dedicated account manager",
+                          },
+                          {
+                            label: "Best for",
+                            go: "Trying out property management software",
+                            pro: "Growing & optimizing rental income",
+                            proplus: "Streamlining & scaling investments",
+                          },
+                          {
+                            label: "Properties",
+                            go: "Up to 3",
+                            pro: "Unlimited",
+                            proplus: "Unlimited",
+                          },
+                          {
+                            label: "Tenants",
+                            go: "Up to 3",
+                            pro: "Unlimited",
+                            proplus: "Unlimited",
+                          },
+                          {
+                            label: "Accounting & reporting",
+                            go: "Basic",
+                            pro: "Advanced",
+                            proplus: "Advanced + Automation",
+                          },
+                          {
+                            label: "Maintenance tracking",
+                            go: "✓",
+                            pro: "✓",
+                            proplus: "✓ + Contractor portal",
+                          },
+                          {
+                            label: "Multi-user access",
+                            go: "—",
+                            pro: "—",
+                            proplus: "✓",
+                          },
+                          {
+                            label: "Dedicated account manager",
+                            go: "—",
+                            pro: "—",
+                            proplus: "✓",
+                          },
+                          {
+                            label: "Priority support",
+                            go: "—",
+                            pro: "Email",
+                            proplus: "Phone & Email",
+                          },
+                        ].map((row, i) => (
+                          <tr key={i} className="hover:bg-slate-50/50">
+                            <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
+                            <td className="px-4 py-4 text-center text-slate-500 text-xs">{row.go}</td>
+                            <td className="px-4 py-4 text-center text-slate-700 text-xs bg-blue-50/40">{row.pro}</td>
+                            <td className="px-4 py-4 text-center text-slate-700 text-xs">{row.proplus}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* POPUP MODAL: REPORT DETAILS DIALOG */}
       {selectedReport && (
