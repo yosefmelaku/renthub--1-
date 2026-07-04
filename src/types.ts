@@ -1,3 +1,11 @@
+export type UserRole = 'renter' | 'owner' | 'super-admin';
+
+export interface AppUser {
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
 export interface PropertyListing {
   id: string;
   title: string;

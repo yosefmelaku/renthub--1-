@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Booking, PropertyListing } from '../types';
+<<<<<<< HEAD
 import { Calendar, CreditCard, Receipt, FileText, Compass, AlertCircle, RefreshCw, Star, MapPin, ChevronDown, ChevronUp, Bed, Bath, Sparkles, Building2, Wrench } from 'lucide-react';
+=======
+import { Calendar, CreditCard, Receipt, FileText, Compass, AlertCircle, RefreshCw, Star, MapPin, ChevronDown, ChevronUp, Bed, Bath, Sparkles, Building2, Wrench, MessageSquareText } from 'lucide-react';
+>>>>>>> 97550ecc69837981a0af58df376d0eb50552e42e
 
 interface RenterDashboardProps {
   bookings: Booking[];

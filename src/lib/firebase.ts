@@ -440,6 +440,30 @@ export async function getBookingsByOwner(ownerId: string): Promise<Booking[]> {
   }
 }
 
+export async function getAllBookings(): Promise<Booking[]> {
+  const collectionPath = 'bookings';
+  try {
+    const querySnapshot = await getDocs(collection(db, collectionPath));
+    const bookings: Booking[] = [];
+    querySnapshot.forEach((doc) => {
+      bookings.push({ id: doc.id, ...doc.data() } as Booking);
+    });
+
+    const localBookings = getLocalBookingsOnly();
+    const merged = [...bookings];
+    for (const b of localBookings) {
+      if (!merged.some(m => m.id === b.id)) {
+        merged.push(b);
+      }
+    }
+
+    return merged.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  } catch (err) {
+    console.warn('Firestore all-bookings fetch failed, falling back to local storage bookings:', err);
+    return getLocalBookingsOnly().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+}
+
 export async function createBooking(booking: Omit<Booking, 'id' | 'status' | 'createdAt' | 'paymentStatus'>): Promise<Booking> {
   const collectionPath = 'bookings';
   const bookingId = "booking_" + Date.now();
