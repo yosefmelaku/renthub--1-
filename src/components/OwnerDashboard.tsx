@@ -3,7 +3,8 @@ import { PropertyListing, Booking } from '../types';
 import { 
   TrendingUp, DollarSign, CalendarCheck2, LayoutGrid, PlusCircle, CheckCircle, XCircle, 
   Trash2, Image, Sparkles, Building, Bed, Bath, Plus, MapPin, RefreshCw, Upload, Wrench,
-  AlertTriangle, Clock3
+  AlertTriangle, Clock3, Percent, Calendar, Users, ArrowUpRight, PieChart
+
 } from 'lucide-react';
 
 interface OwnerDashboardProps {
@@ -237,64 +238,362 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
       {/* SUB-TAB: STATS INDEX */}
       {activeSubTab === 'stats' && (
-        <div className="space-y-6" id="subtab-panel-stats">
-          {/* Bento Stats row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center space-x-4">
-              <div className="bg-emerald-50 text-emerald-600 p-3 rounded-xl border border-emerald-100">
-                <DollarSign className="h-6 w-6" />
+        <div className="space-y-6 animate-fadeIn" id="subtab-panel-stats">
+          
+          {/* Row 1: Rent received, Upcoming payments, Rent overdue */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Rent Received */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-[-20%] right-[-10%] w-32 h-32 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-500" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Rent received</span>
+                <span className="p-2 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
+                  <DollarSign className="h-5 w-5" />
+                </span>
               </div>
-              <div>
-                <span className="text-[10px] text-gray-400 uppercase font-sans font-bold block">Total Earnings</span>
-                <span className="text-2xl font-sans font-extrabold text-gray-900">${stats.totalEarnings}</span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center space-x-4">
-              <div className="bg-blue-50 text-blue-600 p-3 rounded-xl border border-blue-100">
-                <TrendingUp className="h-6 w-6" />
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-400 uppercase font-sans font-bold block">Occupancy Rate</span>
-                <span className="text-2xl font-sans font-extrabold text-gray-900">{stats.occupancyRate}%</span>
+              <p className="mt-5 text-3xl font-extrabold tracking-tight">USD {stats.totalEarnings.toFixed(2)}</p>
+              <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400">Received last month</span>
+                <span className="font-bold text-emerald-400">USD {stats.totalEarnings.toFixed(0)}</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center space-x-4">
-              <div className="bg-amber-50 text-amber-600 p-3 rounded-xl border border-amber-100">
-                <CalendarCheck2 className="h-6 w-6" />
+            {/* Upcoming Payments */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-[-20%] right-[-10%] w-32 h-32 rounded-full bg-blue-500/10 blur-2xl pointer-events-none group-hover:bg-blue-500/20 transition-all duration-500" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Upcoming payments</span>
+                <span className="p-2 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20">
+                  <Clock3 className="h-5 w-5" />
+                </span>
               </div>
-              <div>
-                <span className="text-[10px] text-gray-400 uppercase font-sans font-bold block">Total Bookings</span>
-                <span className="text-2xl font-sans font-extrabold text-gray-900">{stats.totalBookings}</span>
+              <p className="mt-5 text-3xl font-extrabold tracking-tight">USD 0.00</p>
+              <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400">Status</span>
+                <span className="font-semibold text-blue-400">0 payment</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-xs flex items-center space-x-4">
-              <div className="bg-slate-50 text-slate-600 p-3 rounded-xl border border-slate-100">
-                <LayoutGrid className="h-6 w-6" />
+            {/* Rent Overdue */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden group">
+              <div className="absolute top-[-20%] right-[-10%] w-32 h-32 rounded-full bg-rose-500/10 blur-2xl pointer-events-none group-hover:bg-rose-500/20 transition-all duration-500" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Rent overdue</span>
+                <span className="p-2 bg-rose-500/10 text-rose-400 rounded-2xl border border-rose-500/20">
+                  <AlertTriangle className="h-5 w-5" />
+                </span>
               </div>
-              <div>
-                <span className="text-[10px] text-gray-400 uppercase font-sans font-bold block">Active Listings</span>
-                <span className="text-2xl font-sans font-extrabold text-gray-900">{stats.activeListingsCount}</span>
+              <p className="mt-5 text-3xl font-extrabold tracking-tight text-rose-400">USD 0.00</p>
+              <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400">Alerts</span>
+                <span className="font-bold text-rose-400">0 overdue</span>
               </div>
             </div>
           </div>
 
-          {/* Quick guide card */}
-          <div className="bg-slate-900 text-white rounded-2xl p-6 relative overflow-hidden shadow-xs">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-              <Sparkles className="h-40 w-40" />
+          {/* Row 2: Cashflow & Top expense categories */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Cashflow Widget (Large: 2 cols) */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl lg:col-span-2 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-emerald-400" />
+                    <span>Cashflow</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Summary of incomes and operational expenses.</p>
+                </div>
+                
+                {/* Date range blocks */}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-2xl">
+                    <div className="text-center bg-slate-900 px-1.5 py-0.5 rounded text-[10px]">
+                      <span className="font-bold block leading-none">1</span>
+                      <span className="text-[8px] uppercase">Jan</span>
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[8px] text-slate-500 block">Start Date</span>
+                      <span className="text-[10px] font-semibold text-slate-300">1 Jan 2026</span>
+                    </div>
+                  </div>
+                  <span className="text-slate-600 text-xs">to</span>
+                  <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-2xl">
+                    <div className="text-center bg-slate-900 px-1.5 py-0.5 rounded text-[10px]">
+                      <span className="font-bold block leading-none">31</span>
+                      <span className="text-[8px] uppercase">Dec</span>
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[8px] text-slate-500 block">End Date</span>
+                      <span className="text-[10px] font-semibold text-slate-300">31 Dec 2026</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Income, Expense, Net values */}
+              <div className="grid grid-cols-3 gap-4 bg-slate-950 border border-slate-850 p-4 rounded-2xl text-center">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">INCOME</span>
+                  <span className="text-base font-extrabold text-white mt-1 block">USD {stats.totalEarnings.toFixed(0)}</span>
+                </div>
+                <div className="border-x border-slate-800">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">EXPENSES</span>
+                  <span className="text-base font-extrabold text-rose-400 mt-1 block">USD 0</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">NET</span>
+                  <span className="text-base font-extrabold text-emerald-400 mt-1 block">USD {stats.totalEarnings.toFixed(0)}</span>
+                </div>
+              </div>
+
+              {/* Monthly Bar Chart */}
+              <div className="pt-2">
+                <div className="flex items-end justify-between h-28 gap-2 px-1">
+                  {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].map((month, i) => {
+                    const isCurrent = month === 'JUL'; // Hardcoded/Simulated July 2026
+                    const heightClass = stats.totalEarnings > 0 && i === 6 ? 'h-full bg-emerald-500 shadow-lg shadow-emerald-500/20' : 'h-1 bg-slate-800';
+                    return (
+                      <div key={month} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
+                        <div className="w-full bg-slate-950 rounded-lg flex items-end h-20 overflow-hidden relative border border-slate-800/40">
+                          <div className={`w-full transition-all duration-500 rounded-t ${heightClass}`} />
+                        </div>
+                        <span className={`text-[9px] font-bold ${isCurrent ? 'text-emerald-400' : 'text-slate-500'} group-hover:text-slate-300`}>{month}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <div className="max-w-xl space-y-2">
-              <h4 className="font-sans font-extrabold text-base flex items-center gap-2 text-emerald-400">
-                <Sparkles className="h-5 w-5" /> Quick Hosting Tip
-              </h4>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                Add premium amenities like <strong>"Infinity Pool"</strong> or <strong>"Chef's Kitchen"</strong> to elevate your visibility score. Listings with verified, rich amenities generate up to 45% more booking traffic!
-              </p>
+
+            {/* Top Expense Categories Widget */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between space-y-6">
+              <div className="space-y-1">
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <PieChart className="h-5 w-5 text-indigo-400" />
+                  <span>Top expense categories</span>
+                </h3>
+                <p className="text-[10px] text-slate-400">1 Jan 2026 - 31 Dec 2026</p>
+              </div>
+
+              {/* Expenses Breakdown */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-slate-950 border border-slate-850 p-3 rounded-2xl">
+                  <span className="text-xs font-semibold text-slate-400">TOTAL</span>
+                  <span className="text-sm font-extrabold text-white">USD 0</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                      Overdue
+                    </span>
+                    <span className="font-bold text-slate-300">USD 0</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      Paid
+                    </span>
+                    <span className="font-bold text-slate-300">USD 0</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                      Upcoming
+                    </span>
+                    <span className="font-bold text-slate-300">USD 0</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Empty chart display */}
+              <div className="border border-dashed border-slate-800 rounded-2xl py-5 text-center text-[10px] text-slate-500">
+                No expense data recorded in this period.
+              </div>
             </div>
           </div>
+
+          {/* Row 3: Listings, Leads, Properties, Occupancy */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Listings Widget */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Listings</span>
+                <button 
+                  onClick={() => setActiveSubTab('listings')}
+                  className="text-emerald-400 hover:text-emerald-300 transition text-xs font-bold"
+                >
+                  View all
+                </button>
+              </div>
+
+              {ownerListings.length === 0 ? (
+                <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
+                  <p className="text-slate-400 text-xs font-medium">You have no live listings.</p>
+                  <button
+                    onClick={() => setActiveSubTab('add')}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-2xl transition cursor-pointer shadow-lg shadow-emerald-600/10"
+                  >
+                    Create listing
+                  </button>
+                </div>
+              ) : (
+                <div className="py-2 space-y-2">
+                  <p className="text-emerald-400 text-2xl font-black">{ownerListings.length}</p>
+                  <p className="text-[10px] text-slate-400">Live active listing units publishing rentals.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Leads Widget */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Leads</span>
+                <span className="text-slate-600 hover:text-slate-400 text-xs font-bold cursor-default">View all</span>
+              </div>
+              <div className="py-6 flex flex-col items-center justify-center text-center">
+                <p className="text-slate-400 text-xs font-medium">You have no leads.</p>
+              </div>
+            </div>
+
+            {/* Properties Widget */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-3">Properties</span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Units</span>
+                    <span className="font-bold">{ownerListings.filter(l => l.type === 'apartment' || l.type === 'studio').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Single family homes</span>
+                    <span className="font-bold">{ownerListings.filter(l => l.type === 'house' || l.type === 'villa').length}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between text-xs">
+                <span className="text-slate-400 font-bold uppercase">TOTAL</span>
+                <span className="font-extrabold text-emerald-400">{ownerListings.length}</span>
+              </div>
+            </div>
+
+            {/* Occupancy Widget */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden group">
+              <div className="w-full text-left">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Occupancy</span>
+              </div>
+              <div className="py-3 flex flex-col items-center justify-center">
+                <div className="relative flex items-center justify-center">
+                  {/* Styled simulated radial ring */}
+                  <svg className="w-20 h-20 transform -rotate-90">
+                    <circle cx="40" cy="40" r="34" stroke="#1e293b" strokeWidth="6" fill="transparent" />
+                    <circle 
+                      cx="40" 
+                      cy="40" 
+                      r="34" 
+                      stroke="#10b981" 
+                      strokeWidth="6" 
+                      fill="transparent" 
+                      strokeDasharray="213.6" 
+                      strokeDashoffset={213.6 - (213.6 * (stats.activeListingsCount > 0 ? stats.occupancyRate : 0)) / 100}
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                  <span className="absolute text-base font-extrabold text-white">
+                    {stats.activeListingsCount > 0 ? stats.occupancyRate : 0}%
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-3 block">OCCUPIED</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 4: Calendar, Cash on cash return, Property valuation */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Calendar Widget */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h4 className="text-sm font-bold flex items-center gap-2">
+                  <Calendar className="h-4.5 w-4.5 text-blue-400" />
+                  <span>July 2026</span>
+                </h4>
+                <button
+                  onClick={() => setActiveSubTab('bookings')}
+                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold"
+                >
+                  Open calendar
+                </button>
+              </div>
+
+              {/* Dynamic Calendar Grid */}
+              <div className="text-center">
+                <div className="grid grid-cols-7 text-[10px] font-bold text-slate-500 uppercase mb-2">
+                  <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                </div>
+                <div className="grid grid-cols-7 text-xs gap-y-1 bg-slate-950/40 p-2 rounded-2xl border border-slate-850">
+                  {/* July 2026 starts on Wednesday, so 3 empty blocks */}
+                  <span className="text-slate-800"></span>
+                  <span className="text-slate-800"></span>
+                  <span className="text-slate-800"></span>
+                  {[...Array(31)].map((_, idx) => {
+                    const day = idx + 1;
+                    const isToday = day === 4; // Simulated July 4, 2026
+                    return (
+                      <span 
+                        key={day} 
+                        className={`py-1 rounded-md transition ${
+                          isToday ? 'bg-emerald-600 text-white font-extrabold' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                        }`}
+                      >
+                        {day}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500 text-center font-medium italic">No events for the selected month</p>
+            </div>
+
+            {/* Cash on Cash Return */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden group">
+              <div className="absolute top-[-20%] right-[-10%] w-32 h-32 rounded-full bg-emerald-500/5 blur-2xl pointer-events-none" />
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-4">Cash on cash return</span>
+                <p className="text-4xl font-black text-emerald-400">0%</p>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-500 font-medium">
+                Trailing 12-month
+              </div>
+            </div>
+
+            {/* Property Valuation */}
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-4">Property valuation</span>
+                
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">NET GAIN</span>
+                  <span className="text-base font-extrabold text-emerald-400">USD 0</span>
+                  <span className="text-xs font-semibold text-emerald-500/80">(0%)</span>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2.5 pt-4 border-t border-slate-800 text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>CURRENT VALUATION:</span>
+                  <span className="font-bold text-white">USD 0</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>PURCHASE PRICE:</span>
+                  <span className="font-bold text-white">USD 0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
 

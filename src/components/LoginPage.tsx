@@ -1,4 +1,5 @@
-import { useState, type FormEvent, type FC } from 'react';
+import React, { useState, type FormEvent, type FC } from 'react';
+
 import { Home, UserCircle2, ShieldCheck, Crown, ArrowRight, LogIn, UserPlus2 } from 'lucide-react';
 import type { AppUser, UserRole } from '../types';
 

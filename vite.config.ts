@@ -7,11 +7,12 @@ import {defineConfig} from 'vite';
 const certPath = path.resolve(__dirname, '.certs');
 const certFile = path.join(certPath, 'localhost.pem');
 const keyFile = path.join(certPath, 'localhost-key.pem');
-const useHttps = fs.existsSync(certFile) && fs.existsSync(keyFile);
+const useHttps = process.env.HTTPS === 'true' && fs.existsSync(certFile) && fs.existsSync(keyFile);
 const httpsConfig = useHttps ? {
   key: fs.readFileSync(keyFile),
   cert: fs.readFileSync(certFile),
-} : true;
+} : undefined;
+
 
 export default defineConfig(() => {
   return {

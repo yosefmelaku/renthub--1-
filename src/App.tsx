@@ -6,7 +6,8 @@ import { PropertyDetailsModal } from './components/PropertyDetailsModal';
 import { CheckoutPaymentModal } from './components/CheckoutPaymentModal';
 import { RenterDashboard } from './components/RenterDashboard';
 import { OwnerDashboard } from './components/OwnerDashboard';
-import { LoginPage } from './components/LoginPage';
+import { AuthPage } from './components/AuthPage';
+
 import {
   getAllListings,
   createListing,
@@ -20,12 +21,12 @@ import {
 } from './lib/firebase';
 import { ShieldCheck, Heart, Users, Building2, DollarSign, Clock3, Database, ReceiptText, Palette, ArrowUpRight, BadgeCheck } from 'lucide-react';
 
-type AppTab = 'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin';
+type AppTab = 'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin' | 'auth';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('explore');
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
-  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
   const [accessNotice, setAccessNotice] = useState<string | null>(null);
 
@@ -111,12 +112,9 @@ export default function App() {
 
   const handleAuthSuccess = (user: AppUser) => {
     setCurrentUser(user);
-    setLoginModalOpen(false);
     setAccessNotice(null);
     setCurrentTab(user.role === 'owner' ? 'owner-dashboard' : user.role === 'super-admin' ? 'super-admin' : 'explore');
   };
-
-  const openLoginModal = () => setLoginModalOpen(true);
 
   const handleTabChange = (nextTab: AppTab) => {
     if (nextTab === 'explore') {
@@ -125,37 +123,34 @@ export default function App() {
       return;
     }
 
-    if (!currentUser) {
-      const demoUser: AppUser =
-        nextTab === 'owner-dashboard'
-          ? { name: 'Demo Host', email: 'owner_default', role: 'owner' }
-          : nextTab === 'super-admin'
-            ? { name: 'System Admin', email: 'admin@renthub.app', role: 'super-admin' }
-            : { name: 'Demo Renter', email: 'demo.renter@renthub.app', role: 'renter' };
-      setCurrentUser(demoUser);
+    if (nextTab === 'auth') {
       setAccessNotice(null);
+      setCurrentTab('auth');
+      return;
+    }
+
+    if (!currentUser) {
+      setCurrentTab('auth');
+      return;
+    }
+
+    if (currentUser.role === 'super-admin') {
       setCurrentTab(nextTab);
       return;
     }
 
     if (nextTab === 'owner-dashboard' && currentUser.role !== 'owner') {
-      setCurrentUser({ name: 'Demo Host', email: 'owner_default', role: 'owner' });
-      setAccessNotice('This dashboard is reserved for the matching persona. Use the sign-in icon to switch roles if needed.');
-      setCurrentTab('owner-dashboard');
+      setAccessNotice('This dashboard is reserved for Owner personas.');
       return;
     }
 
     if (nextTab === 'renter-dashboard' && currentUser.role !== 'renter') {
-      setCurrentUser({ name: 'Demo Renter', email: 'demo.renter@renthub.app', role: 'renter' });
-      setAccessNotice('This dashboard is reserved for the matching persona. Use the sign-in icon to switch roles if needed.');
-      setCurrentTab('renter-dashboard');
+      setAccessNotice('This dashboard is reserved for Tenants.');
       return;
     }
 
     if (nextTab === 'super-admin' && currentUser.role !== 'super-admin') {
-      setCurrentUser({ name: 'System Admin', email: 'admin@renthub.app', role: 'super-admin' });
-      setAccessNotice('This dashboard is reserved for the matching persona. Use the sign-in icon to switch roles if needed.');
-      setCurrentTab('super-admin');
+      setAccessNotice('This dashboard is reserved for Super Administrators.');
       return;
     }
 
@@ -165,7 +160,6 @@ export default function App() {
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setLoginModalOpen(false);
     setAccessNotice(null);
     setCurrentTab('explore');
   };
@@ -185,7 +179,11 @@ export default function App() {
     nights: number;
     totalPrice: number;
   }) => {
-    if (!currentUser || currentUser.role !== 'renter') {
+    if (!currentUser) {
+      setCurrentTab('auth');
+      return;
+    }
+    if (currentUser.role !== 'renter') {
       alert('Only renters can book stays. Please switch to renter mode to book.');
       return;
     }
@@ -290,16 +288,18 @@ export default function App() {
     { entry: 'Payout Batch', debit: '$2,100', credit: '$0', balance: '$1,785' },
   ];
 
+
+
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between" id="app-root-layout">
       <div>
         <Navbar
-          currentTab={currentTab}
+          currentTab={currentTab === 'auth' ? 'explore' : currentTab}
           setCurrentTab={handleTabChange}
           currentUser={currentUser}
           globalSearchTerm={globalSearchTerm}
           setGlobalSearchTerm={setGlobalSearchTerm}
-          onLoginClick={openLoginModal}
+          onLoginClick={() => handleTabChange('auth')}
           onLogout={handleLogout}
         />
 
@@ -325,6 +325,12 @@ export default function App() {
                   onSelectProperty={(property) => setSelectedProperty(property)}
                 />
               )}
+            </div>
+          )}
+
+          {currentTab === 'auth' && (
+            <div className="animate-fadeIn">
+              <AuthPage onLogin={handleAuthSuccess} onCancel={() => setCurrentTab('explore')} />
             </div>
           )}
 
@@ -540,11 +546,9 @@ export default function App() {
             </div>
           )}
         </main>
-<<<<<<< HEAD
-=======
 
->>>>>>> 97550ecc69837981a0af58df376d0eb50552e42e
-        {loginModalOpen && <LoginPage onLogin={handleAuthSuccess} onClose={() => setLoginModalOpen(false)} />}
+
+
       </div>
 
       <footer className="bg-white border-t border-gray-100 py-6 mt-12" id="app-footer">

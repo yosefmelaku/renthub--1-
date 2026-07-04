@@ -1,9 +1,7 @@
 import React from 'react';
 import { Home, User, ShieldAlert, KeyRound, Lock, LogOut, Search } from 'lucide-react';
-<<<<<<< HEAD
-=======
 import { AppUser } from '../types';
->>>>>>> 97550ecc69837981a0af58df376d0eb50552e42e
+
 
 interface NavbarProps {
   currentTab: 'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin';
@@ -45,12 +43,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <div className="flex items-center gap-2 md:hidden">
               {currentUser ? (
-                <button type="button" onClick={onLogout} className="rounded-xl border border-gray-200 p-2 text-gray-600">
+                <button type="button" onClick={onLogout} className="rounded-xl border border-gray-200 p-2 text-gray-600 cursor-pointer">
                   <LogOut className="h-4 w-4" />
                 </button>
               ) : (
-                <button type="button" onClick={onLoginClick} className="rounded-xl bg-emerald-600 p-2 text-white">
-                  <Lock className="h-4 w-4" />
+                <button type="button" onClick={onLoginClick} className="rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs cursor-pointer hover:bg-emerald-500 transition-all">
+                  Sign In
                 </button>
               )}
             </div>
@@ -113,11 +111,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-<<<<<<< HEAD
-=======
                   value={globalSearchTerm}
                   onChange={(event) => setGlobalSearchTerm(event.target.value)}
->>>>>>> 97550ecc69837981a0af58df376d0eb50552e42e
                   placeholder="Search listings, city, or amenities"
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm text-gray-700 outline-none transition focus:border-emerald-500 focus:bg-white"
                 />
@@ -130,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     type="button"
                     onClick={onLogout}
-                    className="text-xs font-semibold px-3 py-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center gap-2"
+                    className="text-xs font-semibold px-3 py-2 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 inline-flex items-center gap-2 cursor-pointer"
                   >
                     <LogOut className="h-4 w-4" />
                     Logout
@@ -149,10 +144,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   type="button"
                   onClick={onLoginClick}
-                  aria-label="Sign in"
-                  className="rounded-full border border-emerald-200 bg-emerald-50 p-2.5 text-emerald-700 transition hover:bg-emerald-100"
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100 cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
                 >
-                  <Lock className="h-4 w-4" />
+                  <KeyRound className="h-3.5 w-3.5" />
+                  Sign In / Register
                 </button>
               )}
             </div>
