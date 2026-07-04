@@ -4,7 +4,7 @@ import {
   Building2, LayoutGrid, Users, PieChart, Wrench, Sparkles, MapPin, RefreshCw, Upload, 
   Image, Trash2, CalendarCheck2, XCircle, CheckCircle, Clock3, AlertTriangle, 
   ChevronDown, ChevronRight, DollarSign, Calendar, Search, ArrowLeft, ArrowUpRight, 
-  TrendingUp, Info, User, HelpCircle, FileText, Bell, Lightbulb, Menu, Plus
+  TrendingUp, Info, User, HelpCircle, FileText, Bell, Lightbulb, Menu, Plus, Home
 } from 'lucide-react';
 
 interface OwnerDashboardProps {
@@ -303,102 +303,193 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         <main className="p-6 overflow-y-auto max-w-7xl w-full mx-auto space-y-6">
           
           {/* TAB 1: DASHBOARD */}
-          {activeTab === 'dashboard' && (
-            <div className="space-y-6 animate-fadeIn">
-              
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs relative overflow-hidden group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Gross Rent Received</span>
-                    <span className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl">
-                      <DollarSign className="h-5 w-5" />
-                    </span>
-                  </div>
-                  <p className="mt-5 text-3xl font-extrabold tracking-tight text-slate-900">USD {stats.totalEarnings.toFixed(2)}</p>
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                    <span>Active bookings value</span>
-                    <span className="font-bold text-emerald-600">USD {stats.totalEarnings.toFixed(0)}</span>
+          {activeTab === 'dashboard' && (() => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const monthName = now.toLocaleString('default', { month: 'long' });
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = now.getDate();
+            const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+            return (
+              <div className="space-y-5 animate-fadeIn">
+
+                {/* Greeting row + filters */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Hello yosef,
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <select className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 pr-7 rounded-lg outline-none cursor-pointer hover:border-slate-300 transition shadow-xs">
+                        <option>Portfolio</option>
+                        <option>All Properties</option>
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    </div>
+                    <div className="relative">
+                      <select className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 pr-7 rounded-lg outline-none cursor-pointer hover:border-slate-300 transition shadow-xs">
+                        <option>Properties</option>
+                        <option>Houses & Villas</option>
+                        <option>Office Spaces</option>
+                        <option>Commercial Real Estate</option>
+                        <option>Apartments</option>
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    </div>
+                    <button className="bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-lg hover:border-slate-300 transition shadow-xs cursor-pointer">
+                      Categories
+                    </button>
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs relative overflow-hidden group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Upcoming Payments</span>
-                    <span className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
-                      <Clock3 className="h-5 w-5" />
-                    </span>
+                {/* 3 Stat Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                  {/* Rent Received */}
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                    <p className="text-sm font-semibold text-slate-600 mb-3">Rent received</p>
+                    <div className="flex items-center gap-3">
+                      <div className="bg-emerald-100 text-emerald-600 p-2.5 rounded-xl">
+                        <Home className="h-5 w-5" />
+                      </div>
+                      <span className="text-2xl font-extrabold text-slate-900">
+                        USD{stats.totalEarnings.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500">
+                      <span className="font-bold text-slate-700">USD{stats.totalEarnings.toFixed(0)}</span>
+                      <span>Received last month</span>
+                    </div>
                   </div>
-                  <p className="mt-5 text-3xl font-extrabold tracking-tight text-slate-900">USD 0.00</p>
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                    <span>Scheduled leases</span>
-                    <span className="font-semibold text-blue-600">0 payments due</span>
+
+                  {/* Upcoming Payments */}
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                    <p className="text-sm font-semibold text-slate-600 mb-3">Upcoming payments</p>
+                    <div className="flex items-center gap-3">
+                      <div className="bg-blue-100 text-blue-600 p-2.5 rounded-xl">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <span className="text-2xl font-extrabold text-slate-900">USD0.00</span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                      0 payment
+                    </div>
+                  </div>
+
+                  {/* Rent Overdue */}
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                    <p className="text-sm font-semibold text-slate-600 mb-3">Rent overdue</p>
+                    <div className="flex items-center gap-3">
+                      <div className="bg-rose-100 text-rose-600 p-2.5 rounded-xl">
+                        <Clock3 className="h-5 w-5" />
+                      </div>
+                      <span className="text-2xl font-extrabold text-slate-900">USD0.00</span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                      0 overdue
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs relative overflow-hidden group">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Rent Overdue</span>
-                    <span className="p-2.5 bg-rose-50 text-rose-600 rounded-2xl">
-                      <AlertTriangle className="h-5 w-5" />
-                    </span>
-                  </div>
-                  <p className="mt-5 text-3xl font-extrabold tracking-tight text-rose-600">USD 0.00</p>
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                    <span>Alert level</span>
-                    <span className="font-bold text-rose-600">0 unpaid items</span>
-                  </div>
-                </div>
-              </div>
+                {/* Cashflow + Calendar row */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-              {/* Cashflow & Financial splits */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Cashflow Graphic */}
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs lg:col-span-2 space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                      <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-emerald-500" />
-                        <span>Cashflow Ledger</span>
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-0.5 font-medium">Income and operational expenses overview.</p>
+                  {/* Cashflow — 2/3 width */}
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs lg:col-span-2 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <h3 className="text-base font-bold text-slate-800">Cashflow</h3>
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-md">1 Jan 2026</span>
+                        <span className="text-slate-300">—</span>
+                        <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-md">31 Dec 2026</span>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                      <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg">1 Jan 2026</span>
-                      <span>to</span>
-                      <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg">31 Dec 2026</span>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl text-center border border-slate-100">
-                    <div>
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">INCOME</span>
-                      <span className="text-lg font-extrabold text-slate-800 mt-1 block">USD {stats.totalEarnings.toFixed(0)}</span>
+                    {/* INCOME / EXPENSES / NET dots */}
+                    <div className="flex items-center gap-5 text-xs font-semibold text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                        <span className="text-slate-900 font-bold">USD{stats.totalEarnings.toFixed(0)}</span>
+                        <span className="text-slate-400 font-normal">INCOME</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block" />
+                        <span className="text-slate-900 font-bold">USD0</span>
+                        <span className="text-slate-400 font-normal">EXPENSES</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-800 inline-block" />
+                        <span className="text-slate-900 font-bold">USD{stats.totalEarnings.toFixed(0)}</span>
+                        <span className="text-slate-400 font-normal">NET</span>
+                      </div>
                     </div>
-                    <div className="border-x border-slate-200">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">EXPENSES</span>
-                      <span className="text-lg font-extrabold text-rose-500 mt-1 block">USD 0</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">NET EARNINGS</span>
-                      <span className="text-lg font-extrabold text-emerald-600 mt-1 block">USD {stats.totalEarnings.toFixed(0)}</span>
-                    </div>
-                  </div>
 
-                  {/* Simulated monthly bar graphs */}
-                  <div className="pt-2">
-                    <div className="flex items-end justify-between h-24 gap-2.5">
-                      {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].map((month, i) => {
-                        const isCurrent = month === 'JUL';
-                        const heightClass = stats.totalEarnings > 0 && i === 6 ? 'h-full bg-emerald-500 shadow-md' : 'h-[6px] bg-slate-200';
+                    {/* Bar chart */}
+                    <div className="flex items-end justify-between gap-1.5 h-28 pt-2">
+                      {['J','F','M','A','M','J','J','A','S','O','N','D'].map((m, i) => {
+                        const isCurrentMonth = i === now.getMonth();
+                        const hasData = stats.totalEarnings > 0 && isCurrentMonth;
                         return (
-                          <div key={month} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                            <div className="w-full bg-slate-50 rounded-lg flex items-end h-16 overflow-hidden relative border border-slate-200/50">
-                              <div className={`w-full transition-all duration-500 rounded-t ${heightClass}`} />
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                            <div className="w-full rounded-t-md bg-slate-100 flex items-end h-20 overflow-hidden">
+                              <div
+                                className={`w-full transition-all duration-700 rounded-t-md ${hasData ? 'bg-slate-700' : 'bg-slate-200'}`}
+                                style={{ height: hasData ? '60%' : '8px' }}
+                              />
                             </div>
-                            <span className={`text-[9px] font-bold ${isCurrent ? 'text-emerald-500' : 'text-slate-400'}`}>{month}</span>
+                            <span className={`text-[9px] font-bold ${isCurrentMonth ? 'text-slate-800' : 'text-slate-400'}`}>{m}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Calendar Widget — 1/3 width */}
+                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-base font-bold text-slate-800">Calendar</h3>
+                    </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-slate-700">{monthName} {year}</span>
+                      <div className="flex gap-1">
+                        <button className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer rounded-md hover:bg-slate-100 transition">
+                          <ChevronDown className="h-4 w-4 rotate-90" />
+                        </button>
+                        <button className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer rounded-md hover:bg-slate-100 transition">
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Day headers */}
+                    <div className="grid grid-cols-7 mb-1">
+                      {dayHeaders.map((d, i) => (
+                        <div key={i} className="text-center text-[10px] font-bold text-slate-400 py-1">{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Calendar days */}
+                    <div className="grid grid-cols-7 gap-y-0.5">
+                      {/* Empty cells before first day */}
+                      {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                        <div key={`e-${i}`} />
+                      ))}
+                      {Array.from({ length: daysInMonth }).map((_, i) => {
+                        const day = i + 1;
+                        const isToday = day === today;
+                        return (
+                          <div
+                            key={day}
+                            className={`flex items-center justify-center text-[11px] font-semibold h-7 w-7 mx-auto rounded-full cursor-pointer transition-all ${
+                              isToday
+                                ? 'bg-blue-600 text-white font-bold'
+                                : 'text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {day}
                           </div>
                         );
                       })}
@@ -406,62 +497,35 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                   </div>
                 </div>
 
-                {/* Categorized splits: Villa, Office, Realestate */}
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-6">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                      <PieChart className="h-5 w-5 text-indigo-500" />
-                      <span>Leasing Splits</span>
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Earnings split by asset categories.</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
-                      <span className="text-slate-500 flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                        Houses & Villas
-                      </span>
-                      <span className="font-bold text-slate-800">USD {typeEarnings.villa.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
-                      <span className="text-slate-500 flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                        Office Spaces
-                      </span>
-                      <span className="font-bold text-slate-800">USD {typeEarnings.office.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-xs border-b border-slate-50 pb-2">
-                      <span className="text-slate-500 flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                        Commercial Real Estate
-                      </span>
-                      <span className="font-bold text-slate-800">USD {typeEarnings.realestate.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-xs pb-2">
-                      <span className="text-slate-500 flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                        Apartments & Studios
-                      </span>
-                      <span className="font-bold text-slate-800">USD {typeEarnings.apartment.toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Occupancy Performance</p>
-                    <p className="text-3xl font-extrabold text-slate-800 mt-2">
-                      {stats.activeListingsCount > 0 ? stats.occupancyRate : 0}%
-                    </p>
+                {/* Leasing Splits — bottom row */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                  <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <PieChart className="h-4 w-4 text-indigo-500" />
+                    Leasing Splits by Category
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Houses & Villas', value: typeEarnings.villa, color: 'bg-emerald-500' },
+                      { label: 'Office Spaces',   value: typeEarnings.office, color: 'bg-blue-500' },
+                      { label: 'Commercial Real Estate', value: typeEarnings.realestate, color: 'bg-amber-500' },
+                      { label: 'Apartments & Studios',   value: typeEarnings.apartment, color: 'bg-indigo-500' },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-2.5">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.color}`} />
+                        <div>
+                          <p className="text-[10px] text-slate-400 font-medium leading-none">{item.label}</p>
+                          <p className="text-sm font-extrabold text-slate-800 mt-0.5">USD{item.value.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
               </div>
+            );
+          })()}
 
-            </div>
-          )}
+
 
           {/* TAB 2: ORGANISATION */}
           {activeTab === 'organisation' && (
