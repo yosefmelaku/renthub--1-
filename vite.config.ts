@@ -1,7 +1,17 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
+
+const certPath = path.resolve(__dirname, '.certs');
+const certFile = path.join(certPath, 'localhost.pem');
+const keyFile = path.join(certPath, 'localhost-key.pem');
+const useHttps = fs.existsSync(certFile) && fs.existsSync(keyFile);
+const httpsConfig = useHttps ? {
+  key: fs.readFileSync(keyFile),
+  cert: fs.readFileSync(certFile),
+} : true;
 
 export default defineConfig(() => {
   return {
@@ -12,6 +22,9 @@ export default defineConfig(() => {
       },
     },
     server: {
+      host: '0.0.0.0',
+      port: 3000,
+      https: httpsConfig,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
