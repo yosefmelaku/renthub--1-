@@ -12,7 +12,7 @@ export interface PropertyListing {
   description: string;
   location: string;
   price: number; // per night
-  type: 'house' | 'apartment' | 'villa' | 'studio';
+  type: 'house' | 'apartment' | 'villa' | 'studio' | 'office' | 'realestate';
   beds: number;
   baths: number;
   image: string;
