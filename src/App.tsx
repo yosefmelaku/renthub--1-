@@ -130,27 +130,36 @@ export default function App() {
     }
 
     if (!currentUser) {
-      setCurrentTab('auth');
-      return;
-    }
-
-    if (currentUser.role === 'super-admin') {
+      const demoUser: AppUser =
+        nextTab === 'owner-dashboard'
+          ? { name: 'Demo Host', email: 'owner_default', role: 'owner' }
+          : nextTab === 'super-admin'
+            ? { name: 'System Admin', email: 'admin@renthub.app', role: 'super-admin' }
+            : { name: 'Demo Renter', email: 'demo.renter@renthub.app', role: 'renter' };
+      setCurrentUser(demoUser);
+      setAccessNotice(null);
       setCurrentTab(nextTab);
       return;
     }
 
     if (nextTab === 'owner-dashboard' && currentUser.role !== 'owner') {
-      setAccessNotice('This dashboard is reserved for Owner personas.');
+      setCurrentUser({ name: 'Demo Host', email: 'owner_default', role: 'owner' });
+      setAccessNotice('This dashboard is reserved for the matching persona. Use the sign-in icon to switch roles if needed.');
+      setCurrentTab('owner-dashboard');
       return;
     }
 
     if (nextTab === 'renter-dashboard' && currentUser.role !== 'renter') {
-      setAccessNotice('This dashboard is reserved for Tenants.');
+      setCurrentUser({ name: 'Demo Renter', email: 'demo.renter@renthub.app', role: 'renter' });
+      setAccessNotice('This dashboard is reserved for the matching persona. Use the sign-in icon to switch roles if needed.');
+      setCurrentTab('renter-dashboard');
       return;
     }
 
     if (nextTab === 'super-admin' && currentUser.role !== 'super-admin') {
-      setAccessNotice('This dashboard is reserved for Super Administrators.');
+      setCurrentUser({ name: 'System Admin', email: 'admin@renthub.app', role: 'super-admin' });
+      setAccessNotice('This dashboard is reserved for the matching persona. Use the sign-in icon to switch roles if needed.');
+      setCurrentTab('super-admin');
       return;
     }
 
@@ -179,11 +188,13 @@ export default function App() {
     nights: number;
     totalPrice: number;
   }) => {
-    if (!currentUser) {
-      setCurrentTab('auth');
-      return;
+    let activeUser = currentUser;
+    if (!activeUser) {
+      const demoUser: AppUser = { name: 'Demo Renter', email: 'demo.renter@renthub.app', role: 'renter' };
+      setCurrentUser(demoUser);
+      activeUser = demoUser;
     }
-    if (currentUser.role !== 'renter') {
+    if (activeUser.role !== 'renter') {
       alert('Only renters can book stays. Please switch to renter mode to book.');
       return;
     }
