@@ -31,10 +31,33 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<SidebarTab>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
-  const [propertyFilter, setPropertyFilter] = useState<'all' | 'villa' | 'office' | 'realestate' | 'apartment'>('all');
-  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
+  const [propertyFilter, setPropertyFilter] = useState<string>('all');
+  const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
 
-  // Form State
+  // Add Property Form State
+  const [propAddress, setPropAddress] = useState('');
+  const [propAddress2, setPropAddress2] = useState('');
+  const [propSuburb, setPropSuburb] = useState('');
+  const [propCity, setPropCity] = useState('');
+  const [propState, setPropState] = useState('');
+  const [propZip, setPropZip] = useState('');
+  const [propCountry, setPropCountry] = useState('');
+  const [propInsuranceProvider, setPropInsuranceProvider] = useState('');
+  const [propAnnualPremium, setPropAnnualPremium] = useState('1,000.00');
+  const [propRenewalDate, setPropRenewalDate] = useState('');
+  const [propType, setPropType] = useState<'house' | 'apartment'>('house');
+  const [propTotalArea, setPropTotalArea] = useState('');
+  const [propBedrooms, setPropBedrooms] = useState('');
+  const [propBathrooms, setPropBathrooms] = useState('');
+  const [propTitle, setPropTitle] = useState('');
+  const [propDescription, setPropDescription] = useState('');
+  const [propPrice, setPropPrice] = useState('150');
+  const [propImageUrl, setPropImageUrl] = useState('');
+  const [propFormError, setPropFormError] = useState('');
+  const [propFormSaving, setPropFormSaving] = useState(false);
+  const [propFormSuccess, setPropFormSuccess] = useState(false);
+
+  // Legacy form state (kept for backward compat)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'house' | 'apartment' | 'villa' | 'studio' | 'office' | 'realestate'>('villa');
@@ -57,6 +80,9 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [maintenancePropFilter, setMaintenancePropFilter] = useState('All Properties');
   const [maintenancePriorityFilter, setMaintenancePriorityFilter] = useState('All Priorities');
   const [newRequestForm, setNewRequestForm] = useState({ property: '', issue: '', guest: '', priority: 'medium' });
+  const [showMaintenanceFilterPanel, setShowMaintenanceFilterPanel] = useState(false);
+  const [maintenancePriorityFilters, setMaintenancePriorityFilters] = useState<string[]>([]);
+  const [maintenanceCompletedIn, setMaintenanceCompletedIn] = useState('Last 60 days');
 
   const PRESET_IMAGES = [
     { name: "Executive Office", url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80" },
@@ -193,11 +219,57 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
       
       setTimeout(() => {
         setFormSuccess(false);
-        setShowAddPropertyModal(false);
         setActiveTab('properties');
       }, 1200);
     } catch (err) {
       setFormError('Failed to publish listing. Please try again.');
+    }
+  };
+
+  const resetAddPropertyForm = () => {
+    setPropAddress(''); setPropAddress2(''); setPropSuburb(''); setPropCity('');
+    setPropState(''); setPropZip(''); setPropCountry('');
+    setPropInsuranceProvider(''); setPropAnnualPremium('1,000.00'); setPropRenewalDate('');
+    setPropType('house'); setPropTotalArea(''); setPropBedrooms(''); setPropBathrooms('');
+    setPropTitle(''); setPropDescription(''); setPropPrice('150'); setPropImageUrl('');
+    setPropFormError(''); setPropFormSaving(false); setPropFormSuccess(false);
+  };
+
+  const handleAddPropertySave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!propAddress.trim()) {
+      setPropFormError('Property address is required.');
+      return;
+    }
+    setPropFormError('');
+    setPropFormSaving(true);
+    try {
+      const resolvedImage = propImageUrl || PRESET_IMAGES[1].url;
+      const resolvedTitle = propTitle || propAddress;
+      const resolvedDesc = propDescription || `${propType === 'house' ? 'Single Family Home' : 'Multi-unit'} at ${propAddress}`;
+      const resolvedLocation = [propAddress, propCity, propState, propCountry].filter(Boolean).join(', ');
+      await onCreateListing({
+        title: resolvedTitle,
+        description: resolvedDesc,
+        type: propType,
+        location: resolvedLocation || propAddress,
+        price: Number(propPrice) || 150,
+        beds: Number(propBedrooms) || 0,
+        baths: Number(propBathrooms) || 0,
+        image: resolvedImage,
+        amenities: ['Fast Wi-Fi'],
+        ownerId: 'owner_default',
+      });
+      setPropFormSuccess(true);
+      setTimeout(() => {
+        resetAddPropertyForm();
+        setShowAddPropertyForm(false);
+        setActiveTab('properties');
+      }, 1000);
+    } catch {
+      setPropFormError('Failed to save property. Please try again.');
+    } finally {
+      setPropFormSaving(false);
     }
   };
 
@@ -570,102 +642,373 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
             </div>
           )}
 
-          {/* TAB 3: PROPERTIES (CATEGORIZED) */}
+          {/* TAB 3: PROPERTIES */}
           {activeTab === 'properties' && (
-            <div className="space-y-6 animate-fadeIn">
-              
-              {/* Controls bar: Category filter + Add Button */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/80 p-4 rounded-3xl shadow-xs">
-                
-                {/* Category filters */}
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { id: 'all', label: 'All Assets' },
-                    { id: 'villa', label: 'Houses & Villas' },
-                    { id: 'office', label: 'Office Spaces' },
-                    { id: 'realestate', label: 'Commercial Real Estate' },
-                    { id: 'apartment', label: 'Apartments' },
-                  ].map((filter) => (
+            showAddPropertyForm ? (
+              <form onSubmit={handleAddPropertySave} className="space-y-6 animate-fadeIn">
+                {/* Page header */}
+                <div className="flex items-start justify-between gap-4">
+                  <div>
                     <button
-                      key={filter.id}
-                      onClick={() => setPropertyFilter(filter.id as any)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        propertyFilter === filter.id 
-                          ? 'bg-emerald-500 text-white shadow-xs' 
-                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                      }`}
+                      type="button"
+                      onClick={() => { resetAddPropertyForm(); setShowAddPropertyForm(false); }}
+                      className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 mb-3 cursor-pointer"
                     >
-                      {filter.label}
+                      <ArrowLeft className="h-4 w-4" /> Back
                     </button>
-                  ))}
+                    <h2 className="text-2xl font-bold text-slate-900">Add a property</h2>
+                    <p className="text-sm text-slate-500 mt-1">Get started by adding your property's address and details below.</p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={propFormSaving}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold text-sm px-6 py-2.5 rounded-lg cursor-pointer transition-colors shrink-0"
+                  >
+                    {propFormSaving ? 'Saving...' : 'Save'}
+                  </button>
                 </div>
 
+                {propFormError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-lg">{propFormError}</div>
+                )}
+                {propFormSuccess && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" /> Property saved successfully!
+                  </div>
+                )}
+
+                {/* Two-column: General Info + Insurance */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* LEFT: General Information (2/3 width) */}
+                  <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">General Information</p>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Property address</label>
+                      <input
+                        type="text"
+                        placeholder="212 Kent Road"
+                        value={propAddress}
+                        onChange={e => setPropAddress(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Address line 2</label>
+                      <input
+                        type="text"
+                        value={propAddress2}
+                        onChange={e => setPropAddress2(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Suburb</label>
+                        <input type="text" value={propSuburb} onChange={e => setPropSuburb(e.target.value)}
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+                        <input type="text" value={propCity} onChange={e => setPropCity(e.target.value)}
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">State / Province</label>
+                        <input type="text" value={propState} onChange={e => setPropState(e.target.value)}
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">ZIP / Postcode</label>
+                        <input type="text" value={propZip} onChange={e => setPropZip(e.target.value)}
+                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Country</label>
+                      <input type="text" value={propCountry} onChange={e => setPropCountry(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                  </div>
+
+                  {/* RIGHT: Insurance (1/3 width) */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Insurance</p>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Current insurance provider</label>
+                      <input
+                        type="text"
+                        placeholder="Enter insurance provider"
+                        value={propInsuranceProvider}
+                        onChange={e => setPropInsuranceProvider(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm placeholder-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Annual premium</label>
+                      <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                        <span className="bg-slate-50 border-r border-slate-200 px-3 py-2 text-sm text-slate-500 font-medium">USD</span>
+                        <input
+                          type="text"
+                          value={propAnnualPremium}
+                          onChange={e => setPropAnnualPremium(e.target.value)}
+                          className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Renewal date</label>
+                      <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                        <input
+                          type="date"
+                          value={propRenewalDate}
+                          onChange={e => setPropRenewalDate(e.target.value)}
+                          className="flex-1 px-3 py-2 text-sm focus:outline-none text-slate-500"
+                        />
+                        <Calendar className="h-4 w-4 text-slate-400 mr-3" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property Type */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Property Type</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      {
+                        value: 'house' as const,
+                        title: 'Single Family Home',
+                        desc: 'A single family home is a standalone property like a town house with only one lease.',
+                      },
+                      {
+                        value: 'apartment' as const,
+                        title: 'Multi-unit',
+                        desc: 'A multi-unit or HMO is a single building with multiple units and leases such as a duplex or apartment block.',
+                      },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setPropType(opt.value)}
+                        className={`text-left p-5 rounded-xl border-2 transition-all cursor-pointer ${
+                          propType === opt.value
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            propType === opt.value ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                          }`}>
+                            {propType === opt.value && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                          </div>
+                          <span className={`font-semibold text-sm ${propType === opt.value ? 'text-blue-700' : 'text-slate-800'}`}>
+                            {opt.title}
+                          </span>
+                        </div>
+                        <p className={`text-xs leading-relaxed ml-7 ${propType === opt.value ? 'text-blue-600' : 'text-slate-500'}`}>
+                          {opt.desc}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Features</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Total area (m²)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={propTotalArea}
+                        onChange={e => setPropTotalArea(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Bedrooms</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="0.0"
+                        value={propBedrooms}
+                        onChange={e => setPropBedrooms(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Bathrooms</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        placeholder="0.0"
+                        value={propBathrooms}
+                        onChange={e => setPropBathrooms(e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property Image */}
+                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Property Image</p>
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://images.unsplash.com/... (optional)"
+                        value={propImageUrl.startsWith('data:') ? '[Local image loaded]' : propImageUrl}
+                        onChange={e => { if (!e.target.value.startsWith('[Local')) setPropImageUrl(e.target.value); }}
+                        className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                      <label className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 cursor-pointer">
+                        <Upload className="h-4 w-4" /> Upload
+                        <input type="file" accept="image/*" className="hidden" onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) { const r = new FileReader(); r.onloadend = () => { if (typeof r.result === 'string') setPropImageUrl(r.result); }; r.readAsDataURL(file); }
+                        }} />
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {PRESET_IMAGES.map(img => (
+                        <button key={img.name} type="button" onClick={() => setPropImageUrl(img.url)}
+                          className={`p-2 rounded-lg border text-xs font-medium text-left cursor-pointer transition ${propImageUrl === img.url ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                          {img.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </form>
+            ) : (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Header row */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-slate-900">Properties</h2>
                 <button
-                  onClick={() => setShowAddPropertyModal(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4.5 py-2.5 rounded-xl cursor-pointer flex items-center gap-1.5 shrink-0 transition-all shadow-xs"
+                  onClick={() => setShowAddPropertyForm(true)}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>List New Property</span>
+                  Add property
                 </button>
               </div>
 
-              {/* Grid lists */}
-              {filteredPropertiesList.length > 0 ? (
+              {/* Filter tabs */}
+              <div className="flex items-center gap-0 border-b border-slate-200 overflow-x-auto">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'overdue', label: 'Rent overdue', count: 0 },
+                  { id: 'due-soon', label: 'Rent due soon', count: 0 },
+                  { id: 'due-later', label: 'Rent due later', count: 0 },
+                  { id: 'vacant', label: 'Vacant', count: 0 },
+                  { id: 'multi-unit', label: 'Multi-Unit' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setPropertyFilter(tab.id)}
+                    className={`px-4 py-3 text-sm font-semibold whitespace-nowrap transition-colors cursor-pointer border-b-2 -mb-px ${
+                      propertyFilter === tab.id
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {tab.label}
+                    {'count' in tab && tab.count !== undefined && (
+                      <span className={`ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                        propertyFilter === tab.id ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Empty state or property list */}
+              {ownerListings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <svg width="200" height="160" viewBox="0 0 200 160" fill="none" className="mb-6 opacity-80">
+                    <ellipse cx="100" cy="145" rx="60" ry="8" fill="#e2e8f0"/>
+                    <rect x="130" y="60" width="28" height="70" rx="3" fill="#cbd5e1"/>
+                    <rect x="135" y="70" width="7" height="10" rx="1" fill="#94a3b8"/>
+                    <rect x="146" y="70" width="7" height="10" rx="1" fill="#94a3b8"/>
+                    <rect x="135" y="85" width="7" height="10" rx="1" fill="#94a3b8"/>
+                    <rect x="146" y="85" width="7" height="10" rx="1" fill="#94a3b8"/>
+                    <rect x="135" y="100" width="7" height="10" rx="1" fill="#94a3b8"/>
+                    <rect x="146" y="100" width="7" height="10" rx="1" fill="#94a3b8"/>
+                    <rect x="158" y="80" width="22" height="50" rx="3" fill="#dde3ed"/>
+                    <rect x="162" y="88" width="5" height="8" rx="1" fill="#94a3b8"/>
+                    <rect x="170" y="88" width="5" height="8" rx="1" fill="#94a3b8"/>
+                    <rect x="162" y="100" width="5" height="8" rx="1" fill="#94a3b8"/>
+                    <rect x="170" y="100" width="5" height="8" rx="1" fill="#94a3b8"/>
+                    <rect x="55" y="75" width="70" height="55" rx="4" fill="#dbeafe"/>
+                    <polygon points="55,75 90,45 125,75" fill="#bfdbfe"/>
+                    <rect x="80" y="100" width="20" height="30" rx="2" fill="#93c5fd"/>
+                    <rect x="60" y="82" width="14" height="14" rx="2" fill="#93c5fd"/>
+                    <rect x="106" y="82" width="14" height="14" rx="2" fill="#93c5fd"/>
+                    <circle cx="52" cy="88" r="10" fill="#1e293b"/>
+                    <rect x="44" y="98" width="16" height="28" rx="4" fill="#334155"/>
+                    <line x1="44" y1="110" x2="30" y2="125" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
+                    <line x1="60" y1="110" x2="68" y2="120" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
+                    <line x1="44" y1="126" x2="40" y2="145" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
+                    <line x1="60" y1="126" x2="64" y2="145" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
+                    <circle cx="72" cy="100" r="14" stroke="#3b82f6" strokeWidth="3" fill="white" fillOpacity="0.6"/>
+                    <line x1="82" y1="110" x2="92" y2="122" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round"/>
+                  </svg>
+                  <p className="text-sm text-slate-500 max-w-xs">
+                    You haven't added any properties yet. Start by clicking + Add Property to add your first one!
+                  </p>
+                </div>
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredPropertiesList.map((property) => (
-                    <div 
-                      key={property.id} 
-                      className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
-                    >
-                      <div className="relative aspect-video bg-slate-50">
+                  {ownerListings.map((property) => (
+                    <div key={property.id} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col">
+                      <div className="relative aspect-video bg-slate-100">
                         <img src={property.image} alt={property.title} className="w-full h-full object-cover" />
                         <button
                           onClick={async () => {
-                            if (window.confirm('Are you absolutely sure you want to remove this property listing from the live rental network?')) {
-                              await onDeleteListing(property.id);
-                            }
+                            if (window.confirm('Remove this property?')) await onDeleteListing(property.id);
                           }}
-                          className="absolute top-3 right-3 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 p-2 rounded-xl shadow-sm border border-slate-100 transition-colors cursor-pointer"
-                          title="Remove Property"
+                          className="absolute top-3 right-3 bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 p-1.5 rounded-lg shadow-sm border border-slate-100 transition cursor-pointer"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
-                        <span className="absolute bottom-3 left-3 bg-[#0c1a30]/80 backdrop-blur-xs text-white text-[10px] font-sans font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider">
-                          {property.type === 'realestate' ? 'Commercial' : property.type}
-                        </span>
                       </div>
-
-                      <div className="p-5 space-y-3">
-                        <h4 className="font-bold text-slate-800 text-base truncate">{property.title}</h4>
-                        <div className="flex items-center text-xs text-slate-400 font-medium">
-                          <MapPin className="h-3.5 w-3.5 mr-1 text-slate-300" />
-                          <span className="truncate">{property.location}</span>
+                      <div className="p-4 space-y-2">
+                        <h4 className="font-semibold text-slate-800 truncate">{property.title}</h4>
+                        <div className="flex items-center text-xs text-slate-400">
+                          <MapPin className="h-3 w-3 mr-1" />{property.location}
                         </div>
-
-                        <div className="flex justify-between items-baseline pt-3 border-t border-slate-100">
-                          <span className="text-sm font-bold text-slate-800">${property.price} / night</span>
-                          <span className="text-[10px] text-slate-400 font-mono">Rating: {property.rating.toFixed(1)} ★</span>
+                        <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
+                          <span className="font-bold text-slate-800">${property.price}/night</span>
+                          <span className="text-slate-400">{property.beds}bd · {property.baths}ba</span>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-12 text-center space-y-4 max-w-sm mx-auto shadow-xs">
-                  <Building2 className="h-10 w-10 text-slate-400 mx-auto" />
-                  <h4 className="font-bold text-slate-800 text-base">No active listings</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    You haven't listed any real-estate properties matching this filter. Get started by clicking list below.
-                  </p>
-                  <button
-                    onClick={() => setShowAddPropertyModal(true)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer"
-                  >
-                    List My First Property
-                  </button>
-                </div>
               )}
             </div>
+            )
           )}
 
           {/* TAB 4: REPORTS (Matches screenshot exactly!) */}
@@ -938,52 +1281,131 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
           {/* TAB 7: MAINTENANCE — Kanban Board */}
           {activeTab === 'maintenance' && (() => {
             const allProps = ['All Properties', ...Array.from(new Set(maintenanceRequests.map(r => r.property)))];
+
             const filtered = maintenanceRequests.filter(r => {
               const propOk = maintenancePropFilter === 'All Properties' || r.property === maintenancePropFilter;
-              const priOk = maintenancePriorityFilter === 'All Priorities' || r.priority === maintenancePriorityFilter;
+              const priOk = maintenancePriorityFilters.length === 0 || maintenancePriorityFilters.includes(r.priority);
               return propOk && priOk;
             });
-            const columns: { key: string; label: string; color: string; headerColor: string }[] = [
-              { key: 'Open',        label: 'NEW',         color: 'bg-slate-50',   headerColor: 'text-slate-500' },
-              { key: 'In Progress', label: 'IN PROGRESS', color: 'bg-blue-50/40', headerColor: 'text-blue-600'  },
-              { key: 'Completed',   label: 'COMPLETED',   color: 'bg-slate-50',   headerColor: 'text-slate-500' },
+
+            const togglePriority = (p: string) => {
+              setMaintenancePriorityFilters(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+            };
+
+            const columns: { key: string; label: string }[] = [
+              { key: 'Open',        label: 'NEW'         },
+              { key: 'In Progress', label: 'IN PROGRESS' },
+              { key: 'Completed',   label: 'COMPLETED'   },
             ];
 
             return (
               <div className="space-y-5 animate-fadeIn">
 
-                {/* Toolbar */}
+                {/* Page title + toolbar */}
                 <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-2xl font-bold text-slate-900 mr-2">Maintenance</h2>
+                  <div className="flex-1" />
+
                   {/* Properties dropdown */}
                   <div className="relative">
                     <select
                       value={maintenancePropFilter}
                       onChange={e => setMaintenancePropFilter(e.target.value)}
-                      className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 pr-8 rounded-xl outline-none cursor-pointer hover:border-slate-300 transition shadow-xs"
+                      className="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-medium px-4 py-2 pr-8 rounded-lg outline-none cursor-pointer hover:border-slate-300 transition"
                     >
                       {allProps.map(p => <option key={p}>{p}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                   </div>
 
-                  {/* Priority dropdown */}
+                  {/* Filter button + panel */}
                   <div className="relative">
-                    <select
-                      value={maintenancePriorityFilter}
-                      onChange={e => setMaintenancePriorityFilter(e.target.value)}
-                      className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 pr-8 rounded-xl outline-none cursor-pointer hover:border-slate-300 transition shadow-xs"
+                    <button
+                      onClick={() => setShowMaintenanceFilterPanel(v => !v)}
+                      className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg hover:border-slate-300 transition cursor-pointer"
                     >
-                      {['All Priorities', 'high', 'medium', 'low'].map(p => <option key={p}>{p}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                  </div>
+                      Filter
+                      <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                    </button>
 
-                  <div className="flex-1" />
+                    {showMaintenanceFilterPanel && (
+                      <div className="absolute right-0 top-11 z-50 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl p-5 space-y-5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-slate-800">Filter</span>
+                          <button
+                            onClick={() => { setMaintenancePriorityFilters([]); setMaintenanceCompletedIn('Last 60 days'); }}
+                            className="text-xs text-blue-600 hover:underline cursor-pointer font-semibold"
+                          >
+                            Clear all
+                          </button>
+                        </div>
+
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search"
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 pr-8"
+                          />
+                          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-1.5">
+                              <ChevronDown className="h-4 w-4 text-slate-500" />
+                              <span className="text-sm font-semibold text-slate-700">Priorities</span>
+                            </div>
+                            <button
+                              onClick={() => setMaintenancePriorityFilters(['low','medium','high','urgent'])}
+                              className="text-xs text-blue-600 hover:underline cursor-pointer font-semibold"
+                            >
+                              Select all
+                            </button>
+                          </div>
+                          <div className="space-y-2.5">
+                            {['Low','Medium','High','Urgent'].map(p => (
+                              <label key={p} className="flex items-center gap-2.5 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="priority-filter"
+                                  checked={maintenancePriorityFilters.includes(p.toLowerCase())}
+                                  onChange={() => togglePriority(p.toLowerCase())}
+                                  className="w-4 h-4 accent-blue-600 cursor-pointer"
+                                />
+                                <span className="text-sm text-slate-700">{p}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-3">
+                            <ChevronDown className="h-4 w-4 text-slate-500" />
+                            <span className="text-sm font-semibold text-slate-700">Completed in</span>
+                          </div>
+                          <div className="space-y-2.5">
+                            {['Last 60 days','Last 90 days','Last 12 months','Last 2 years','All time'].map(opt => (
+                              <label key={opt} className="flex items-center gap-2.5 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="completed-in"
+                                  checked={maintenanceCompletedIn === opt}
+                                  onChange={() => setMaintenanceCompletedIn(opt)}
+                                  className="w-4 h-4 accent-blue-600 cursor-pointer"
+                                />
+                                <span className="text-sm text-slate-700">{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* New Request button */}
                   <button
                     onClick={() => setShowNewRequestModal(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md transition cursor-pointer"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition cursor-pointer"
                   >
                     <Plus className="h-4 w-4" />
                     New request
@@ -997,35 +1419,48 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                     return (
                       <div key={col.key} className="flex flex-col gap-3">
                         {/* Column Header */}
-                        <div className={`flex items-center gap-2 ${col.headerColor}`}>
-                          <span className="text-[11px] font-extrabold tracking-[0.15em] uppercase">{col.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold tracking-widest uppercase text-slate-500">{col.label}</span>
                           {cards.length > 0 && (
                             <span className="bg-slate-200 text-slate-600 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{cards.length}</span>
                           )}
                         </div>
 
                         {/* Column body */}
-                        <div className={`min-h-[280px] rounded-2xl border border-slate-200/60 p-3 ${col.color} flex flex-col gap-3`}>
+                        <div className="min-h-[300px] rounded-xl border border-slate-200 bg-[#f1f3f6] p-3 flex flex-col gap-3">
                           {cards.length === 0 ? (
-                            /* Empty state matching LandlordStudio */
-                            <div className="flex-1 flex flex-col items-center justify-center gap-3 py-8 text-center">
+                            /* Empty state matching LandlordStudio screenshot */
+                            <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10 text-center">
                               {col.key === 'In Progress' ? (
                                 <>
-                                  <svg width="80" height="72" viewBox="0 0 80 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <ellipse cx="40" cy="60" rx="32" ry="8" fill="#e2e8f0" />
-                                    <rect x="12" y="20" width="56" height="36" rx="6" fill="#cbd5e1" />
-                                    <rect x="18" y="26" width="44" height="24" rx="4" fill="#e2e8f0" />
-                                    <circle cx="27" cy="14" r="7" fill="#93c5fd" />
-                                    <circle cx="40" cy="11" r="7" fill="#60a5fa" />
-                                    <circle cx="53" cy="14" r="7" fill="#3b82f6" />
-                                    <path d="M30 38 Q40 30 50 38" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" fill="none" />
-                                    <circle cx="36" cy="35" r="2" fill="#94a3b8" />
-                                    <circle cx="44" cy="35" r="2" fill="#94a3b8" />
+                                  {/* Houses + trees illustration */}
+                                  <svg width="100" height="80" viewBox="0 0 100 80" fill="none">
+                                    <ellipse cx="50" cy="72" rx="38" ry="6" fill="#dde3ed"/>
+                                    {/* Left tree */}
+                                    <rect x="10" y="50" width="4" height="16" rx="1" fill="#94a3b8"/>
+                                    <ellipse cx="12" cy="44" rx="7" ry="10" fill="#6366f1"/>
+                                    <ellipse cx="9" cy="48" rx="5" ry="7" fill="#818cf8"/>
+                                    {/* Right tree */}
+                                    <rect x="84" y="50" width="4" height="16" rx="1" fill="#94a3b8"/>
+                                    <ellipse cx="86" cy="44" rx="7" ry="10" fill="#6366f1"/>
+                                    <ellipse cx="89" cy="48" rx="5" ry="7" fill="#818cf8"/>
+                                    {/* Left house */}
+                                    <rect x="22" y="42" width="24" height="24" rx="2" fill="#cbd5e1"/>
+                                    <polygon points="22,42 34,28 46,42" fill="#94a3b8"/>
+                                    <rect x="29" y="54" width="10" height="12" rx="1" fill="#64748b"/>
+                                    <rect x="24" y="46" width="7" height="7" rx="1" fill="#e2e8f0"/>
+                                    <rect x="38" y="46" width="7" height="7" rx="1" fill="#e2e8f0"/>
+                                    {/* Right house */}
+                                    <rect x="54" y="45" width="22" height="21" rx="2" fill="#dde3ed"/>
+                                    <polygon points="54,45 65,33 76,45" fill="#b6c2d4"/>
+                                    <rect x="60" y="55" width="9" height="11" rx="1" fill="#64748b"/>
+                                    <rect x="56" y="48" width="6" height="6" rx="1" fill="#e2e8f0"/>
+                                    <rect x="69" y="48" width="6" height="6" rx="1" fill="#e2e8f0"/>
                                   </svg>
-                                  <p className="text-xs text-slate-400 font-medium">You have no maintenance requests</p>
+                                  <p className="text-xs text-slate-500 font-medium">You have no maintenance requests</p>
                                 </>
                               ) : (
-                                <p className="text-xs text-slate-400 font-medium">No {col.label.toLowerCase()} requests</p>
+                                <p className="text-xs text-slate-400 font-medium mt-8">No requests</p>
                               )}
                             </div>
                           ) : (
@@ -1201,247 +1636,11 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         </main>
       </div>
 
-      {/* POPUP MODAL: ADD PROPERTY WIZARD */}
-      {showAddPropertyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-fadeIn">
-            <div className="border-b border-slate-100 p-5 flex justify-between items-center bg-slate-50">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">New Rental Asset Wizard</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Publish your villa, office space, or commercial unit instantly.</p>
-              </div>
-              <button 
-                onClick={() => setShowAddPropertyModal(false)}
-                className="text-slate-400 hover:text-slate-900 text-xl font-bold p-1 bg-white hover:bg-slate-100 rounded-lg cursor-pointer"
-              >
-                &times;
-              </button>
-            </div>
 
-            <form onSubmit={handleFormSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
-              {formSuccess && (
-                <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-4 rounded-xl text-xs font-semibold text-center flex items-center justify-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-emerald-600" />
-                  <span>Property listing uploaded successfully!</span>
-                </div>
-              )}
-
-              {formError && (
-                <div className="bg-rose-50 border border-rose-100 text-rose-850 p-4 rounded-xl text-xs font-semibold text-center flex items-center justify-center gap-2">
-                  <XCircle className="h-5 w-5 text-rose-600" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="publish-title" className="text-xs font-bold text-slate-600 block">Property Title *</label>
-                  <input
-                    id="publish-title"
-                    type="text"
-                    required
-                    placeholder="e.g. Executive Corporate Center"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full mt-1.5 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="publish-type" className="text-xs font-bold text-slate-600 block">Asset Type</label>
-                  <select
-                    id="publish-type"
-                    value={type}
-                    onChange={(e) => setType(e.target.value as any)}
-                    className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500 focus:bg-white capitalize"
-                  >
-                    <option value="villa">House / Villa</option>
-                    <option value="office">Office Space</option>
-                    <option value="realestate">Commercial Real Estate</option>
-                    <option value="apartment">Apartment</option>
-                    <option value="studio">Studio Room</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label htmlFor="publish-description" className="text-xs font-bold text-slate-600 block">Property Description *</label>
-                  <textarea
-                    id="publish-description"
-                    required
-                    rows={3}
-                    placeholder="Provide details about features, lease conditions, and occupancy details."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full mt-1.5 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="publish-location" className="text-xs font-bold text-slate-600 block">Address Location *</label>
-                  <input
-                    id="publish-location"
-                    type="text"
-                    required
-                    placeholder="e.g. Manhattan, New York"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full mt-1.5 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="publish-price" className="text-xs font-bold text-slate-600 block">Rent Rate (USD / night) *</label>
-                  <input
-                    id="publish-price"
-                    type="number"
-                    required
-                    min="10"
-                    value={price}
-                    onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full mt-1.5 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="publish-beds" className="text-xs font-bold text-slate-600 block">Capacity / Rooms count</label>
-                  <input
-                    id="publish-beds"
-                    type="number"
-                    min="1"
-                    value={beds}
-                    onChange={(e) => setBeds(Number(e.target.value))}
-                    className="w-full mt-1.5 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="publish-baths" className="text-xs font-bold text-slate-600 block">Bathrooms count</label>
-                  <input
-                    id="publish-baths"
-                    type="number"
-                    min="1"
-                    step="0.5"
-                    value={baths}
-                    onChange={(e) => setBaths(Number(e.target.value))}
-                    className="w-full mt-1.5 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Cover Image */}
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-600 block">Cover Image URL *</label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    required
-                    placeholder="https://images.unsplash.com/photo-... or select below"
-                    value={imageUrl.startsWith('data:image/') ? '[Local Image Loaded]' : imageUrl}
-                    onChange={(e) => {
-                      if (!e.target.value.startsWith('[Local')) setImageUrl(e.target.value);
-                    }}
-                    className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
-                  />
-                  <label className="flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl font-bold text-xs cursor-pointer transition">
-                    <Upload className="h-4 w-4" />
-                    <span>Upload file</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === 'string') setImageUrl(reader.result);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-1.5">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Or select preset image:</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {PRESET_IMAGES.map((img) => (
-                      <button
-                        key={img.name}
-                        type="button"
-                        onClick={() => setImageUrl(img.url)}
-                        className={`p-2 rounded-xl border text-[10px] font-bold truncate text-left cursor-pointer transition ${
-                          imageUrl === img.url 
-                            ? 'bg-emerald-50 border-emerald-400 text-emerald-800' 
-                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        {img.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Amenities */}
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-600 block">List of Amenities</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="e.g. Conference Room, Secure Parking"
-                    value={customAmenity}
-                    onChange={(e) => setCustomAmenity(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddAmenity(); } }}
-                    className="flex-grow px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddAmenity}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl"
-                  >
-                    Add
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-1">
-                  {amenities.map((amenity, idx) => (
-                    <span key={idx} className="bg-slate-50 text-slate-600 border border-slate-200 text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                      <span>{amenity}</span>
-                      <button type="button" onClick={() => handleRemoveAmenity(amenity)} className="hover:text-rose-600 text-slate-400 font-bold">&times;</button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddPropertyModal(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-5 py-3 rounded-xl cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md cursor-pointer"
-                >
-                  Publish Asset Listing
-                </button>
-              </div>
-
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* POPUP MODAL: REPORT DETAILS DIALOG (Shows high-fidelity bookkeeping details) */}
+      {/* POPUP MODAL: REPORT DETAILS DIALOG */}
       {selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs">
           <div className="w-full max-w-4xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-fadeIn">
-            
-            {/* Header */}
             <div className="border-b border-slate-100 p-6 flex justify-between items-center bg-slate-50">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 px-3 py-1 rounded-full">
@@ -1451,165 +1650,44 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                   {selectedReport.replace('-', ' ')} Statement
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedReport(null)}
                 className="text-slate-400 hover:text-slate-900 text-xl font-bold p-1 bg-white hover:bg-slate-100 rounded-lg cursor-pointer"
               >
                 &times;
               </button>
             </div>
-
-            {/* Content splits by report types */}
-            <div className="p-6 overflow-y-auto max-h-[70vh]">
-              
-              {/* Report 1: P&L Summary */}
-              {selectedReport === 'p&l' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-3 gap-4 text-center border-b border-slate-100 pb-6">
-                    <div>
-                      <span className="text-xs text-slate-400 font-bold block uppercase">Total Revenue</span>
-                      <span className="text-2xl font-black text-slate-800 block mt-1">${stats.totalEarnings.toFixed(2)}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-400 font-bold block uppercase">Operating Costs</span>
-                      <span className="text-2xl font-black text-rose-500 block mt-1">$450.00</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-400 font-bold block uppercase">Net Profit</span>
-                      <span className="text-2xl font-black text-emerald-600 block mt-1">${(stats.totalEarnings - 450).toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="font-bold text-slate-800 text-sm">Income Details</h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold">
-                            <th className="py-2">Source / Property</th>
-                            <th className="py-2">Category</th>
-                            <th className="py-2">Gross Income</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 font-medium">
-                          {ownerListings.map(l => {
-                            const listingBookings = ownerBookings.filter(b => b.listingId === l.id && b.paymentStatus === 'paid');
-                            const sum = listingBookings.reduce((s, b) => s + b.totalPrice, 0);
-                            return (
-                              <tr key={l.id}>
-                                <td className="py-3 font-semibold text-slate-800">{l.title}</td>
-                                <td className="py-3 uppercase text-[10px] text-slate-500 font-bold">{l.type}</td>
-                                <td className="py-3 text-slate-850 font-bold">${sum.toFixed(2)}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Report 2: Rent Ledger Statement */}
-              {selectedReport === 'rent-ledger' && (
-                <div className="space-y-4 animate-fadeIn">
-                  <h4 className="font-bold text-slate-800 text-sm">Accrual-based booking transactions ledger</h4>
-                  
-                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
-                          <th className="p-3">Transaction ID</th>
-                          <th className="p-3">Tenant Name</th>
-                          <th className="p-3">Property Space</th>
-                          <th className="p-3">Billing Dates</th>
-                          <th className="p-3">Payment Status</th>
-                          <th className="p-3">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
-                        {ownerBookings.map(b => (
-                          <tr key={b.id} className="hover:bg-slate-50/40">
-                            <td className="p-3 font-mono font-bold text-slate-400">{b.id}</td>
-                            <td className="p-3 text-slate-800">{b.renterName}</td>
-                            <td className="p-3 text-slate-850 font-semibold">{b.listingTitle}</td>
-                            <td className="p-3 text-slate-400 font-mono">{b.startDate} &rarr; {b.endDate}</td>
-                            <td className="p-3">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                b.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                              }`}>
-                                {b.paymentStatus}
-                              </span>
-                            </td>
-                            <td className="p-3 text-slate-900 font-extrabold">${b.totalPrice.toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Report 3: Overdue Rent Payments */}
-              {selectedReport === 'overdue-payments' && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-rose-800 font-bold text-sm">Overdue Payment Action Required</h4>
-                      <p className="text-rose-600 text-xs mt-1 leading-relaxed">
-                        The following bookings have been approved but remain unpaid. Send payment link notifications to the renters.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
-                          <th className="p-3">Tenant Name</th>
-                          <th className="p-3">Property Unit</th>
-                          <th className="p-3">Lease Period</th>
-                          <th className="p-3">Due Total</th>
-                          <th className="p-3 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-medium">
-                        {ownerBookings.filter(b => b.paymentStatus === 'unpaid' && b.status === 'approved').map(b => (
-                          <tr key={b.id} className="hover:bg-slate-50/40">
-                            <td className="p-3 text-slate-800">{b.renterName}</td>
-                            <td className="p-3 text-slate-850 font-semibold">{b.listingTitle}</td>
-                            <td className="p-3 text-slate-400 font-mono">{b.startDate} &rarr; {b.endDate}</td>
-                            <td className="p-3 text-rose-600 font-extrabold">${b.totalPrice.toFixed(2)}</td>
-                            <td className="p-3 text-right">
-                              <button className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px]">
-                                Send Reminder
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                        {ownerBookings.filter(b => b.paymentStatus === 'unpaid' && b.status === 'approved').length === 0 && (
-                          <tr>
-                            <td colSpan={5} className="p-6 text-center text-slate-400 italic">No overdue rent payments logged for active leases.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Other reports placeholder fallbacks */}
-              {['income-expense', 'breakdown', 'schedule-e', 'rent-diff', 'rent-changes'].includes(selectedReport) && (
-                <div className="py-12 text-center space-y-3">
-                  <PieChart className="h-10 w-10 text-slate-300 mx-auto" />
-                  <h4 className="font-bold text-slate-800 text-sm">Simulated Statement Log</h4>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                    This module is active. Real-time {selectedReport.replace('-', ' ')} logging splits require a connected QuickBooks or Stripe database to pull historical logs.
-                  </p>
-                </div>
-              )}
-
+            <div className="p-6 overflow-y-auto max-h-[70vh] space-y-4">
+              <p className="text-sm text-slate-500">Report data for: <span className="font-bold text-slate-800 capitalize">{selectedReport.replace(/-/g, ' ')}</span></p>
+              <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
+                      <th className="p-3">Property</th>
+                      <th className="p-3">Tenant</th>
+                      <th className="p-3">Period</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {ownerBookings.map(b => (
+                      <tr key={b.id} className="hover:bg-slate-50/40">
+                        <td className="p-3 font-semibold text-slate-800">{b.listingTitle}</td>
+                        <td className="p-3 text-slate-700">{b.renterName}</td>
+                        <td className="p-3 text-slate-400 font-mono">{b.startDate} &rarr; {b.endDate}</td>
+                        <td className="p-3">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${b.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{b.paymentStatus}</span>
+                        </td>
+                        <td className="p-3 font-extrabold text-slate-900">${b.totalPrice.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                    {ownerBookings.length === 0 && (
+                      <tr><td colSpan={5} className="p-6 text-center text-slate-400 italic">No transactions found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
