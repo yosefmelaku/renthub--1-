@@ -1,6 +1,9 @@
 import React from 'react';
 import { Home, User, ShieldAlert, KeyRound, Lock, LogOut, Search } from 'lucide-react';
+<<<<<<< HEAD
+=======
 import { AppUser } from '../types';
+>>>>>>> 97550ecc69837981a0af58df376d0eb50552e42e
 
 interface NavbarProps {
   currentTab: 'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin';
@@ -110,8 +113,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
+<<<<<<< HEAD
+=======
                   value={globalSearchTerm}
                   onChange={(event) => setGlobalSearchTerm(event.target.value)}
+>>>>>>> 97550ecc69837981a0af58df376d0eb50552e42e
                   placeholder="Search listings, city, or amenities"
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-10 pr-3 text-sm text-gray-700 outline-none transition focus:border-emerald-500 focus:bg-white"
                 />

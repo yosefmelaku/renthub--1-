@@ -540,7 +540,10 @@ export default function App() {
             </div>
           )}
         </main>
+<<<<<<< HEAD
+=======
 
+>>>>>>> 97550ecc69837981a0af58df376d0eb50552e42e
         {loginModalOpen && <LoginPage onLogin={handleAuthSuccess} onClose={() => setLoginModalOpen(false)} />}
       </div>
 
