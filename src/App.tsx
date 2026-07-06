@@ -7,6 +7,7 @@ import { CheckoutPaymentModal } from './components/CheckoutPaymentModal';
 import { RenterDashboard } from './components/RenterDashboard';
 import { OwnerDashboard } from './components/OwnerDashboard';
 import { AuthPage } from './components/AuthPage';
+import { UpgradePage } from './components/UpgradePage';
 
 import {
   getAllListings,
@@ -26,6 +27,7 @@ type AppTab = 'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin'
 export default function App() {
   const [currentTab, setCurrentTab] = useState<AppTab>('explore');
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [showUpgradePage, setShowUpgradePage] = useState(false);
 
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
   const [accessNotice, setAccessNotice] = useState<string | null>(null);
@@ -371,6 +373,7 @@ export default function App() {
                   await fetchListings();
                   await fetchBookings();
                 }}
+                onUpgradeClick={() => setShowUpgradePage(true)}
               />
             </div>
           )}
@@ -596,6 +599,10 @@ export default function App() {
           onClose={() => setCheckoutDetails(null)}
           onPaymentSuccess={handlePaymentSuccess}
         />
+      )}
+
+      {showUpgradePage && (
+        <UpgradePage onClose={() => setShowUpgradePage(false)} />
       )}
     </div>
   );
