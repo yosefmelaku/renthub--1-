@@ -8,6 +8,12 @@ interface UpgradePageProps {
 export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
   const [units, setUnits] = useState(3);
   const [showFullFeatures, setShowFullFeatures] = useState(false);
+  const [upgradedPlan, setUpgradedPlan] = useState<string | null>(null);
+
+  const handleUpgrade = (plan: string) => {
+    setUpgradedPlan(plan);
+    setTimeout(() => setUpgradedPlan(null), 3000);
+  };
 
   const features = [
     {
@@ -50,7 +56,7 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
             <Building2 className="h-5 w-5" />
           </div>
           <span className="font-extrabold text-slate-900 text-base tracking-tight">
-            Landlord<span className="text-emerald-500">Studio</span>
+            RentHub
           </span>
         </div>
         <button
@@ -64,6 +70,14 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
 
       {/* Page content */}
       <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-8">
+
+        {/* Upgrade success toast */}
+        {upgradedPlan && (
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 flex items-center gap-2 shadow-sm">
+            <Check className="h-4 w-4 text-emerald-600" />
+            Upgraded to <strong>{upgradedPlan}</strong> successfully! Your new features are now active.
+          </div>
+        )}
 
         {/* Page title */}
         <div className="text-center space-y-2">
@@ -108,7 +122,7 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
                 Growing landlords managing multiple units who want to automate accounting and reporting.
               </p>
             </div>
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition">
+            <button onClick={() => handleUpgrade('Pro')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition">
               Upgrade to Pro
             </button>
           </div>
@@ -130,7 +144,7 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
                 Portfolio landlords & property managers needing advanced automation, multi-user access, and dedicated account manager.
               </p>
             </div>
-            <button className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition">
+            <button onClick={() => handleUpgrade('Pro Plus')} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm py-2.5 rounded-xl cursor-pointer transition">
               Upgrade to Pro Plus
             </button>
           </div>
@@ -185,14 +199,14 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
                       <th className="px-4 py-4 text-center w-1/4 bg-blue-50">
                         <p className="font-bold text-blue-700">Pro</p>
                         <p className="text-xs text-slate-500 mt-0.5">$12.00/mo</p>
-                        <button className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition">
+                        <button onClick={() => handleUpgrade('Pro')} className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition">
                           Upgrade to Pro
                         </button>
                       </th>
                       <th className="px-4 py-4 text-center w-1/4">
                         <p className="font-bold text-slate-800">Pro Plus</p>
                         <p className="text-xs text-slate-500 mt-0.5">$28.00/mo</p>
-                        <button className="mt-3 w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition">
+                        <button onClick={() => handleUpgrade('Pro Plus')} className="mt-3 w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 rounded-lg cursor-pointer transition">
                           Upgrade to Pro Plus
                         </button>
                       </th>

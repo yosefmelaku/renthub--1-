@@ -20,7 +20,7 @@ import {
   createPaymentRecord,
   updateBookingStatus
 } from './lib/firebase';
-import { ShieldCheck, Heart, Users, Building2, DollarSign, Clock3, Database, ReceiptText, Palette, ArrowUpRight, BadgeCheck } from 'lucide-react';
+import { ShieldCheck, Heart, Users, Building2, DollarSign, Clock3, Database, ReceiptText, Palette, ArrowUpRight, BadgeCheck, LayoutGrid, FileText } from 'lucide-react';
 
 type AppTab = 'explore' | 'renter-dashboard' | 'owner-dashboard' | 'super-admin' | 'auth';
 
@@ -386,8 +386,8 @@ export default function App() {
                     <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-400">
                       <ShieldCheck className="h-3.5 w-3.5" /> Super Admin Control
                     </div>
-                    <h2 className="text-3xl font-bold">System-wide oversight for listings, bookings, and revenue</h2>
-                    <p className="text-sm text-slate-400">Monitor platform activity, approve pending requests, and keep the marketplace moving from one command center.</p>
+                    <h2 className="text-3xl font-bold">The Rental Property Section (Website Admin)</h2>
+                    <p className="text-sm text-slate-400">In this backend area, you manage the public-facing platform where tenants browse properties and landlords list them.</p>
                   </div>
                   <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-3 text-sm text-slate-300">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Signed in as</p>
@@ -410,95 +410,37 @@ export default function App() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs space-y-4">
                   <div className="flex items-center gap-2 text-emerald-600">
-                    <Palette className="h-5 w-5" />
-                    <h3 className="text-lg font-semibold text-gray-900">Brand Provisioning</h3>
+                    <Building2 className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold text-gray-900">Approve or Reject Listings</h3>
                   </div>
-                  <p className="text-sm text-gray-500">Deploy tenant-facing themes and brand surfaces from a single control point.</p>
-                  <div className="space-y-3">
-                    {brandPresets.map((brand) => (
-                      <div key={brand.name} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">{brand.name}</p>
-                          <p className="text-xs text-gray-500">{brand.accent} theme</p>
-                        </div>
-                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">{brand.status}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-sm text-gray-500">Verify property photos, descriptions, and amenities to ensure they meet your website's quality standards.</p>
                 </div>
 
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs space-y-4">
                   <div className="flex items-center gap-2 text-sky-600">
-                    <ReceiptText className="h-5 w-5" />
-                    <h3 className="text-lg font-semibold text-gray-900">SOC-2 Audit Trail</h3>
+                    <LayoutGrid className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold text-gray-900">Manage Categories &amp; Tags</h3>
                   </div>
-                  <div className="space-y-3">
-                    {auditTrail.map((entry) => (
-                      <div key={entry.event} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-gray-800">{entry.event}</p>
-                          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">{entry.result}</span>
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">{entry.actor} • {entry.time}</p>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-sm text-gray-500">Update tags like "Furnished," "Pet-Friendly," or location-based filters so users can easily browse your database.</p>
                 </div>
 
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs space-y-4">
                   <div className="flex items-center gap-2 text-violet-600">
-                    <Database className="h-5 w-5" />
-                    <h3 className="text-lg font-semibold text-gray-900">PostgreSQL Explorer</h3>
+                    <FileText className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold text-gray-900">Handle Website Content</h3>
                   </div>
-                  <div className="space-y-3">
-                    {databaseRows.map((row) => (
-                      <div key={row.table} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-gray-800">{row.table}</p>
-                          <span className="rounded-full bg-sky-50 px-2 py-1 text-[10px] font-semibold text-sky-700">{row.health}</span>
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">{row.rows} rows • {row.latency}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Double-Entry Accounting Ledger</h3>
-                    <p className="text-sm text-gray-500">Track debits, credits, and balances for every platform transaction.</p>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-600">
-                    <BadgeCheck className="h-4 w-4 text-emerald-600" /> Balanced
-                  </div>
+                  <p className="text-sm text-gray-500">Update FAQs, the homepage, pricing pages, and terms of service.</p>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-100 text-sm">
-                    <thead>
-                      <tr className="text-left text-xs uppercase tracking-[0.2em] text-gray-400">
-                        <th className="px-3 py-2">Entry</th>
-                        <th className="px-3 py-2">Debit</th>
-                        <th className="px-3 py-2">Credit</th>
-                        <th className="px-3 py-2">Balance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {ledgerRows.map((row) => (
-                        <tr key={row.entry} className="hover:bg-gray-50/70">
-                          <td className="px-3 py-3 font-medium text-gray-800">{row.entry}</td>
-                          <td className="px-3 py-3 text-gray-600">{row.debit}</td>
-                          <td className="px-3 py-3 text-gray-600">{row.credit}</td>
-                          <td className="px-3 py-3 font-semibold text-gray-900">{row.balance}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs space-y-4">
+                  <div className="flex items-center gap-2 text-amber-600">
+                    <Users className="h-5 w-5" />
+                    <h3 className="text-lg font-semibold text-gray-900">User Moderation</h3>
+                  </div>
+                  <p className="text-sm text-gray-500">Manage user accounts, enforce account suspensions for fraudulent listings, and review reported complaints.</p>
                 </div>
               </div>
 

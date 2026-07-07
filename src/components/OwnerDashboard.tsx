@@ -78,6 +78,15 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     { id: 'req-102', property: 'Luxury Villa - Malibu', guest: 'Mina K.', issue: 'Smart lock battery warning', priority: 'medium', status: 'In Progress', updatedAt: '37 min ago' },
     { id: 'req-103', property: 'Commercial Showroom - Plaza', guest: 'Noah R.', issue: 'Front display light fixtures flickering', priority: 'high', status: 'Completed', updatedAt: '1 hr ago' },
   ]);
+  const trialStartKey = 'renthub_trial_start';
+  const [trialDaysLeft, setTrialDaysLeft] = useState(() => {
+    const stored = localStorage.getItem(trialStartKey);
+    const startDate = stored ? new Date(stored) : new Date();
+    if (!stored) localStorage.setItem(trialStartKey, startDate.toISOString());
+    const elapsed = Math.floor((Date.now() - startDate.getTime()) / 86400000);
+    return Math.max(0, 14 - elapsed);
+  });
+
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [maintenancePropFilter, setMaintenancePropFilter] = useState('All Properties');
   const [maintenancePriorityFilter, setMaintenancePriorityFilter] = useState('All Priorities');
@@ -287,60 +296,67 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   ] as const;
 
   return (
-    <div className="flex flex-col lg:flex-row bg-[#f8fafc] min-h-[90vh] rounded-3xl overflow-hidden border border-slate-200/60 shadow-lg font-sans">
-      
-      {/* SIDEBAR NAVIGATION */}
-      <aside className={`bg-[#0c1a30] text-slate-300 transition-all duration-300 ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} w-full lg:flex lg:flex-col shrink-0`}>
-        {/* Sidebar Logo Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-500 text-white p-2 rounded-xl">
-              <Building2 className="h-5 w-5" />
-            </div>
-            {!sidebarCollapsed && (
-              <span className="font-extrabold text-white text-base tracking-tight">
-                RentHub<span className="text-emerald-400">Studio</span>
-              </span>
-            )}
-          </div>
-          <button 
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden lg:block text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg cursor-pointer"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Sidebar Nav Items */}
-        <nav className="flex-1 px-4 py-6 space-y-1.5 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible shrink-0 lg:shrink">
-          {sidebarItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                setActiveTab(item.id);
-                setSelectedReport(null);
-              }}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap lg:whitespace-normal ${
-                activeTab === item.id 
-                  ? 'bg-emerald-500/10 text-emerald-400 border-l-4 border-emerald-500 font-bold' 
-                  : 'hover:bg-slate-800/40 hover:text-slate-100'
-              }`}
-            >
-              {item.icon}
-              {(!sidebarCollapsed || window.innerWidth < 1024) && <span>{item.label}</span>}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* MAIN VIEW CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0">
-        
-        {/* LandlordStudio trial warning banner at the top */}
+    <>
+      {/* Trial warning banner above everything */}
+      {trialDaysLeft > 0 ? (
         <div className="bg-[#ff9f00] text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-sm">
           <Info className="h-4 w-4 fill-white text-[#ff9f00]" />
-          <span>Trial ends in 14 days. <span className="underline cursor-pointer hover:text-amber-50" onClick={onUpgradeClick}>Upgrade Now</span></span>
+          <span>Trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <span className="underline cursor-pointer hover:text-amber-50" onClick={onUpgradeClick}>Upgrade Now</span></span>
         </div>
+      ) : (
+        <div className="bg-rose-600 text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-sm">
+          <Info className="h-4 w-4 fill-white text-rose-600" />
+          <span>Trial expired. <span className="underline cursor-pointer hover:text-rose-200" onClick={onUpgradeClick}>Upgrade Now</span></span>
+        </div>
+      )}
+      <div className="flex flex-col lg:flex-row bg-[#f8fafc] min-h-[90vh] rounded-3xl overflow-hidden border border-slate-200/60 shadow-lg font-sans">
+        
+        {/* SIDEBAR NAVIGATION */}
+        <aside className={`bg-[#0c1a30] text-slate-300 transition-all duration-300 ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} w-full lg:flex lg:flex-col shrink-0`}>
+          {/* Sidebar Logo Header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500 text-white p-2 rounded-xl">
+                <Building2 className="h-5 w-5" />
+              </div>
+              {!sidebarCollapsed && (
+                <span className="font-extrabold text-white text-base tracking-tight">
+                  RentHub<span className="text-emerald-400">Studio</span>
+                </span>
+              )}
+            </div>
+            <button 
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:block text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg cursor-pointer"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Sidebar Nav Items */}
+          <nav className="flex-1 px-4 py-6 space-y-1.5 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible shrink-0 lg:shrink">
+            {sidebarItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setSelectedReport(null);
+                }}
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap lg:whitespace-normal ${
+                  activeTab === item.id 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-l-4 border-emerald-500 font-bold' 
+                    : 'hover:bg-slate-800/40 hover:text-slate-100'
+                }`}
+              >
+                {item.icon}
+                {(!sidebarCollapsed || window.innerWidth < 1024) && <span>{item.label}</span>}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* MAIN VIEW CONTENT AREA */}
+        <div className="flex-1 flex flex-col min-w-0">
 
         {/* TOP INTERACTIVE CONTROLS BAR */}
         <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between gap-4">
