@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { PropertyListing, Booking } from '../types';
-import MapView from './MapView';
+import { PropertyListing, Booking, AppUser } from '../types';
 import { 
-  Building2, LayoutGrid, Users, PieChart, Wrench, Sparkles, MapPin, RefreshCw, Upload, 
-  Image, Trash2, CalendarCheck2, XCircle, CheckCircle, Clock3, AlertTriangle, 
-  ChevronDown, ChevronRight, DollarSign, Calendar, Search, ArrowLeft, ArrowUpRight, 
-  TrendingUp, Info, User, HelpCircle, FileText, Bell, Lightbulb, Menu, Plus, Home
+  TrendingUp, DollarSign, CalendarCheck2, LayoutGrid, PlusCircle, CheckCircle, XCircle, 
+  Trash2, Image, Sparkles, Building, Bed, Bath, Plus, MapPin, RefreshCw, Upload, Wrench,
+  AlertTriangle, Clock3, Percent, Calendar, Users, ArrowUpRight, PieChart, ChevronDown, 
+  Bell, Lightbulb, Menu, LogOut, FileText, Briefcase, Settings, Landmark, ShieldCheck,
+  Home, UserCircle2
 } from 'lucide-react';
 
 interface OwnerDashboardProps {
@@ -16,10 +16,12 @@ interface OwnerDashboardProps {
   onUpdateBookingStatus: (bookingId: string, status: Booking['status']) => Promise<void>;
   loading: boolean;
   onRefresh: () => void;
-  onUpgradeClick: () => void;
+  currentUser: AppUser | null;
+  onLogout: () => void;
+  onSwitchToTenant: () => void;
 }
 
-type SidebarTab = 'dashboard' | 'organisation' | 'properties' | 'reports' | 'find-tenants' | 'integrations' | 'maintenance' | 'contacts';
+type SubTab = 'stats' | 'listings' | 'bookings' | 'add' | 'maintenance' | 'organisation' | 'reports' | 'integrations' | 'contacts' | 'more';
 
 export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   listings,
@@ -29,41 +31,17 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   onUpdateBookingStatus,
   loading,
   onRefresh,
-  onUpgradeClick,
+  currentUser,
+  onLogout,
+  onSwitchToTenant
 }) => {
-  const [activeTab, setActiveTab] = useState<SidebarTab>('dashboard');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<string | null>(null);
-  const [propertyFilter, setPropertyFilter] = useState<string>('all');
-  const [showAddPropertyForm, setShowAddPropertyForm] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('stats');
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
-  // Add Property Form State
-  const [propAddress, setPropAddress] = useState('');
-  const [propAddress2, setPropAddress2] = useState('');
-  const [propSuburb, setPropSuburb] = useState('');
-  const [propCity, setPropCity] = useState('');
-  const [propState, setPropState] = useState('');
-  const [propZip, setPropZip] = useState('');
-  const [propCountry, setPropCountry] = useState('');
-  const [propInsuranceProvider, setPropInsuranceProvider] = useState('');
-  const [propAnnualPremium, setPropAnnualPremium] = useState('1,000.00');
-  const [propRenewalDate, setPropRenewalDate] = useState('');
-  const [propType, setPropType] = useState<'house' | 'apartment'>('house');
-  const [propTotalArea, setPropTotalArea] = useState('');
-  const [propBedrooms, setPropBedrooms] = useState('');
-  const [propBathrooms, setPropBathrooms] = useState('');
-  const [propTitle, setPropTitle] = useState('');
-  const [propDescription, setPropDescription] = useState('');
-  const [propPrice, setPropPrice] = useState('150');
-  const [propImageUrl, setPropImageUrl] = useState('');
-  const [propFormError, setPropFormError] = useState('');
-  const [propFormSaving, setPropFormSaving] = useState(false);
-  const [propFormSuccess, setPropFormSuccess] = useState(false);
-
-  // Legacy form state (kept for backward compat)
+  // Form State for Adding Property
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState<'house' | 'apartment' | 'villa' | 'studio' | 'office' | 'realestate'>('villa');
+  const [type, setType] = useState<'house' | 'apartment' | 'villa' | 'studio'>('apartment');
   const [location, setLocation] = useState('');
   const [price, setPrice] = useState<number>(150);
   const [beds, setBeds] = useState<number>(2);
@@ -74,39 +52,24 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
 
+  // Maintenance Alerts
   const [maintenanceRequests, setMaintenanceRequests] = useState([
-    { id: 'req-101', property: 'Office Suite A - Downtown', guest: 'Talia S. (TechCorp)', issue: 'HVAC cooling sporadic after midnight', priority: 'high', status: 'Open', updatedAt: '12 min ago' },
-    { id: 'req-102', property: 'Luxury Villa - Malibu', guest: 'Mina K.', issue: 'Smart lock battery warning', priority: 'medium', status: 'In Progress', updatedAt: '37 min ago' },
-    { id: 'req-103', property: 'Commercial Showroom - Plaza', guest: 'Noah R.', issue: 'Front display light fixtures flickering', priority: 'high', status: 'Completed', updatedAt: '1 hr ago' },
+    { id: 'req-101', property: 'Cliffside Villa', guest: 'Talia S.', issue: 'HVAC cooling sporadic after midnight', priority: 'high', status: 'Open', updatedAt: '12 min ago' },
+    { id: 'req-102', property: 'Harbor Loft', guest: 'Mina K.', issue: 'Smart lock battery warning', priority: 'medium', status: 'In Review', updatedAt: '37 min ago' },
+    { id: 'req-103', property: 'Skyline Residence', guest: 'Noah R.', issue: 'Kitchen appliance not responding', priority: 'high', status: 'Resolved', updatedAt: '1 hr ago' },
   ]);
-  const trialStartKey = 'renthub_trial_start';
-  const [trialDaysLeft, setTrialDaysLeft] = useState(() => {
-    const stored = localStorage.getItem(trialStartKey);
-    const startDate = stored ? new Date(stored) : new Date();
-    if (!stored) localStorage.setItem(trialStartKey, startDate.toISOString());
-    const elapsed = Math.floor((Date.now() - startDate.getTime()) / 86400000);
-    return Math.max(0, 14 - elapsed);
-  });
-
-  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
-  const [maintenancePropFilter, setMaintenancePropFilter] = useState('All Properties');
-  const [maintenancePriorityFilter, setMaintenancePriorityFilter] = useState('All Priorities');
-  const [newRequestForm, setNewRequestForm] = useState({ property: '', issue: '', guest: '', priority: 'medium' });
-  const [showMaintenanceFilterPanel, setShowMaintenanceFilterPanel] = useState(false);
-  const [maintenancePriorityFilters, setMaintenancePriorityFilters] = useState<string[]>([]);
-  const [maintenanceCompletedIn, setMaintenanceCompletedIn] = useState('Last 60 days');
 
   const PRESET_IMAGES = [
-    { name: "Executive Office", url: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80" },
-    { name: "Luxury Villa", url: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80" },
-    { name: "Commercial Retail", url: "https://images.unsplash.com/photo-1555421689-491a97ff2040?auto=format&fit=crop&w=1200&q=80" },
-    { name: "Modern Loft", url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80" }
+    { name: "Modern Villa", url: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80" },
+    { name: "Nordic House", url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80" },
+    { name: "Chic Penthouse", url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80" },
+    { name: "Minimalist Loft", url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80" }
   ];
 
-  // Calculate Owner Analytics (Filtered for listings owned by this owner)
+  // Owner filter details
   const ownerListings = useMemo(() => {
-    return listings.filter(l => l.ownerId === 'owner_default');
-  }, [listings]);
+    return listings.filter(l => l.ownerId === 'owner_default' || l.ownerId === currentUser?.email);
+  }, [listings, currentUser]);
 
   const ownerListingIds = useMemo(() => {
     return new Set(ownerListings.map(l => l.id));
@@ -133,33 +96,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
     };
   }, [ownerBookings, ownerListings]);
 
-  // Financial splits by property types
-  const typeEarnings = useMemo(() => {
-    const splits = { villa: 0, office: 0, realestate: 0, apartment: 0 };
-    ownerBookings
-      .filter(b => b.paymentStatus === 'paid' && b.status !== 'declined' && b.status !== 'cancelled')
-      .forEach(b => {
-        const prop = ownerListings.find(l => l.id === b.listingId);
-        if (prop) {
-          const t = prop.type;
-          if (t === 'villa' || t === 'house') splits.villa += b.totalPrice;
-          else if (t === 'office') splits.office += b.totalPrice;
-          else if (t === 'realestate') splits.realestate += b.totalPrice;
-          else splits.apartment += b.totalPrice;
-        }
-      });
-    return splits;
-  }, [ownerBookings, ownerListings]);
-
-  const filteredPropertiesList = useMemo(() => {
-    if (propertyFilter === 'all') return ownerListings;
-    return ownerListings.filter(p => {
-      if (propertyFilter === 'villa') return p.type === 'villa' || p.type === 'house';
-      if (propertyFilter === 'office') return p.type === 'office';
-      if (propertyFilter === 'realestate') return p.type === 'realestate';
-      return p.type === 'apartment' || p.type === 'studio';
-    });
-  }, [ownerListings, propertyFilter]);
+  const dispatchSummary = useMemo(() => {
+    const openCount = maintenanceRequests.filter(r => r.status === 'Open').length;
+    const reviewCount = maintenanceRequests.filter(r => r.status === 'In Review').length;
+    const resolvedCount = maintenanceRequests.filter(r => r.status === 'Resolved').length;
+    return { openCount, reviewCount, resolvedCount };
+  }, [maintenanceRequests]);
 
   const handleAddAmenity = () => {
     if (customAmenity.trim() && !amenities.includes(customAmenity.trim())) {
@@ -173,24 +115,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   };
 
   const handleMaintenanceStatusChange = (requestId: string, nextStatus: string) => {
-    setMaintenanceRequests((prev) => prev.map((request) => request.id === requestId ? { ...request, status: nextStatus } : request));
-  };
-
-  const handleNewRequestSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRequestForm.property.trim() || !newRequestForm.issue.trim()) return;
-    const newReq = {
-      id: `req-${Date.now()}`,
-      property: newRequestForm.property,
-      guest: newRequestForm.guest || 'Unassigned',
-      issue: newRequestForm.issue,
-      priority: newRequestForm.priority,
-      status: 'Open',
-      updatedAt: 'just now',
-    };
-    setMaintenanceRequests((prev) => [newReq, ...prev]);
-    setNewRequestForm({ property: '', issue: '', guest: '', priority: 'medium' });
-    setShowNewRequestModal(false);
+    setMaintenanceRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: nextStatus } : r));
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -216,7 +141,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
         baths,
         image: imageUrl,
         amenities,
-        ownerId: 'owner_default'
+        ownerId: currentUser?.email ?? 'owner_default'
       });
       
       setFormSuccess(true);
@@ -231,1493 +156,1294 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
       
       setTimeout(() => {
         setFormSuccess(false);
-        setActiveTab('properties');
-      }, 1200);
+        setActiveSubTab('listings');
+      }, 1500);
     } catch (err) {
       setFormError('Failed to publish listing. Please try again.');
     }
   };
 
-  const resetAddPropertyForm = () => {
-    setPropAddress(''); setPropAddress2(''); setPropSuburb(''); setPropCity('');
-    setPropState(''); setPropZip(''); setPropCountry('');
-    setPropInsuranceProvider(''); setPropAnnualPremium('1,000.00'); setPropRenewalDate('');
-    setPropType('house'); setPropTotalArea(''); setPropBedrooms(''); setPropBathrooms('');
-    setPropTitle(''); setPropDescription(''); setPropPrice('150'); setPropImageUrl('');
-    setPropFormError(''); setPropFormSaving(false); setPropFormSuccess(false);
-  };
-
-  const handleAddPropertySave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!propAddress.trim()) {
-      setPropFormError('Property address is required.');
-      return;
+  // Helper calculations for User Info
+  const initials = useMemo(() => {
+    if (!currentUser?.name) return 'yM';
+    const parts = currentUser.name.split(' ');
+    if (parts.length >= 2) {
+      // Lowercase first, uppercase second to mimic "yM"
+      return `${parts[0][0].toLowerCase()}${parts[1][0].toUpperCase()}`;
     }
-    setPropFormError('');
-    setPropFormSaving(true);
-    try {
-      const resolvedImage = propImageUrl || PRESET_IMAGES[1].url;
-      const resolvedTitle = propTitle || propAddress;
-      const resolvedDesc = propDescription || `${propType === 'house' ? 'Single Family Home' : 'Multi-unit'} at ${propAddress}`;
-      const resolvedLocation = [propAddress, propCity, propState, propCountry].filter(Boolean).join(', ');
-      await onCreateListing({
-        title: resolvedTitle,
-        description: resolvedDesc,
-        type: propType,
-        location: resolvedLocation || propAddress,
-        price: Number(propPrice) || 150,
-        beds: Number(propBedrooms) || 0,
-        baths: Number(propBathrooms) || 0,
-        image: resolvedImage,
-        amenities: ['Fast Wi-Fi'],
-        ownerId: 'owner_default',
-      });
-      setPropFormSuccess(true);
-      setTimeout(() => {
-        resetAddPropertyForm();
-        setShowAddPropertyForm(false);
-        setActiveTab('properties');
-      }, 1000);
-    } catch {
-      setPropFormError('Failed to save property. Please try again.');
-    } finally {
-      setPropFormSaving(false);
-    }
-  };
+    return currentUser.name.substring(0, 2).toLowerCase();
+  }, [currentUser]);
 
-  const sidebarItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid className="h-5 w-5" /> },
-    { id: 'organisation', label: 'Organisation', icon: <Building2 className="h-5 w-5" /> },
-    { id: 'properties', label: 'Properties', icon: <Home className="h-5 w-5" /> },
-    { id: 'reports', label: 'Reports', icon: <PieChart className="h-5 w-5" /> },
-    { id: 'find-tenants', label: 'Find Tenants', icon: <Users className="h-5 w-5" /> },
-    { id: 'integrations', label: 'Integrations', icon: <Sparkles className="h-5 w-5" /> },
-    { id: 'maintenance', label: 'Maintenance', icon: <Wrench className="h-5 w-5" /> },
-    { id: 'contacts', label: 'Contacts', icon: <FileText className="h-5 w-5" /> },
-  ] as const;
+  const firstName = useMemo(() => {
+    if (!currentUser?.name) return 'yosef';
+    return currentUser.name.split(' ')[0].toLowerCase();
+  }, [currentUser]);
 
   return (
-    <>
-      {/* Trial warning banner above everything */}
-      {trialDaysLeft > 0 ? (
-        <div className="bg-[#ff9f00] text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-sm">
-          <Info className="h-4 w-4 fill-white text-[#ff9f00]" />
-          <span>Trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <span className="underline cursor-pointer hover:text-amber-50" onClick={onUpgradeClick}>Upgrade Now</span></span>
-        </div>
-      ) : (
-        <div className="bg-rose-600 text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shadow-sm">
-          <Info className="h-4 w-4 fill-white text-rose-600" />
-          <span>Trial expired. <span className="underline cursor-pointer hover:text-rose-200" onClick={onUpgradeClick}>Upgrade Now</span></span>
-        </div>
-      )}
-      <div className="flex flex-col lg:flex-row bg-[#f8fafc] min-h-[90vh] rounded-3xl overflow-hidden border border-slate-200/60 shadow-lg font-sans">
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans" id="owner-portal-layout">
+      
+      {/* 1. TOP ORANGE ALERT BAR */}
+      <div className="bg-[#f59e0b] text-white py-2.5 px-6 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-sm shrink-0 select-none">
+        <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
+        <span>Trial ends in 7 days.</span>
+        <button className="underline hover:text-slate-100 font-extrabold cursor-pointer ml-1">Upgrade Now</button>
+      </div>
+
+      {/* 2. BODY CONTAINER */}
+      <div className="flex-1 flex overflow-hidden">
         
-        {/* SIDEBAR NAVIGATION */}
-        <aside className={`bg-[#0c1a30] text-slate-300 transition-all duration-300 ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} w-full lg:flex lg:flex-col shrink-0`}>
-          {/* Sidebar Logo Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="bg-emerald-500 text-white p-2 rounded-xl">
-                <Building2 className="h-5 w-5" />
-              </div>
-              {!sidebarCollapsed && (
-                <span className="font-extrabold text-white text-base tracking-tight">
-                  RentHub<span className="text-emerald-400">Studio</span>
-                </span>
-              )}
+        {/* SIDEBAR NAVIGATION (Dark Blue) */}
+        <aside className="w-64 bg-[#0b1a30] text-slate-300 flex flex-col shrink-0 border-r border-slate-900 shadow-xl relative z-20">
+          {/* Sidebar Brand header */}
+          <div className="p-6 border-b border-slate-900 flex items-center gap-3 bg-[#0a1526]">
+            <div className="bg-emerald-500 text-white p-2 rounded-xl">
+              <Home className="h-5 w-5" />
             </div>
-            <button 
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hidden lg:block text-slate-500 hover:text-white p-1 hover:bg-slate-800 rounded-lg cursor-pointer"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
+            <div>
+              <span className="font-extrabold text-sm text-white tracking-wide block uppercase leading-none">RentHub</span>
+              <span className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase">Studio Portal</span>
+            </div>
           </div>
 
-          {/* Sidebar Nav Items */}
-          <nav className="flex-1 px-4 py-6 space-y-1.5 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible shrink-0 lg:shrink">
-            {sidebarItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setSelectedReport(null);
-                }}
-                className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap lg:whitespace-normal ${
-                  activeTab === item.id 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-l-4 border-emerald-500 font-bold' 
-                    : 'hover:bg-slate-800/40 hover:text-slate-100'
-                }`}
-              >
-                {item.icon}
-                {(!sidebarCollapsed || window.innerWidth < 1024) && <span>{item.label}</span>}
-              </button>
-            ))}
+          {/* Sidebar Menu items */}
+          <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+            <button
+              onClick={() => setActiveSubTab('stats')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'stats' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <LayoutGrid className="h-4.5 w-4.5 shrink-0" />
+              <span>Dashboard</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('organisation')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'organisation' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Briefcase className="h-4.5 w-4.5 shrink-0" />
+              <span>Organisation</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('listings')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'listings' || activeSubTab === 'add'
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Building className="h-4.5 w-4.5 shrink-0" />
+              <span>Properties</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('reports')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'reports' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <FileText className="h-4.5 w-4.5 shrink-0" />
+              <span>Reports</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('bookings')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'bookings' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Users className="h-4.5 w-4.5 shrink-0" />
+              <span>Find Tenants</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('integrations')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'integrations' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <RefreshCw className="h-4.5 w-4.5 shrink-0" />
+              <span>Integrations</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('maintenance')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'maintenance' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Wrench className="h-4.5 w-4.5 shrink-0" />
+              <span>Maintenance</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('contacts')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'contacts' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Users className="h-4.5 w-4.5 shrink-0" />
+              <span>Contacts</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('more')}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold tracking-wider uppercase transition cursor-pointer text-left ${
+                activeSubTab === 'more' 
+                  ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-400' 
+                  : 'hover:bg-slate-800/40 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Settings className="h-4.5 w-4.5 shrink-0" />
+              <span>More</span>
+            </button>
           </nav>
+
+          {/* Quick Stats shortcut */}
+          <div className="p-4 m-4 bg-slate-900/60 rounded-2xl border border-slate-800">
+            <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Status</span>
+            <div className="flex justify-between text-xs font-medium text-slate-300">
+              <span>Database URL</span>
+              <span className="text-emerald-500 font-mono text-[10px]">Connected</span>
+            </div>
+          </div>
         </aside>
 
-        {/* MAIN VIEW CONTENT AREA */}
-        <div className="flex-1 flex flex-col min-w-0">
-
-        {/* TOP INTERACTIVE CONTROLS BAR */}
-        <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-slate-800 capitalize">
-              {activeTab === 'dashboard' ? 'Overview' : activeTab.replace('-', ' ')}
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={onRefresh}
-              className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 border border-slate-200 rounded-xl cursor-pointer"
-              title="Sync Database"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-
-            {/* Profile Dropdown Simulation */}
-            <div className="flex items-center gap-2.5 border-l border-slate-200 pl-4">
-              <div className="bg-emerald-50 text-emerald-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-xs">
-                yM
-              </div>
-              <div className="hidden sm:block text-left text-xs leading-none">
-                <p className="font-bold text-slate-800">Yosef Melaku</p>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Premium Landlord</p>
-              </div>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-            </div>
-          </div>
-        </header>
-
-        {/* SUB-VIEW CONDITIONAL RENDER */}
-        <main className="p-6 overflow-y-auto max-w-7xl w-full mx-auto space-y-6">
+        {/* WORKSPACE AREA (Left Content) */}
+        <div className="flex-grow flex flex-col overflow-y-auto">
           
-          {/* TAB 1: DASHBOARD */}
-          {activeTab === 'dashboard' && (() => {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            const monthName = now.toLocaleString('default', { month: 'long' });
-            const firstDayOfMonth = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const today = now.getDate();
-            const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+          {/* TOP NAVBAR CONTAINER */}
+          <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-xs">
+            <div className="flex items-center gap-4">
+              <button className="text-slate-500 hover:text-slate-800 md:hidden">
+                <Menu className="h-5 w-5" />
+              </button>
+              {/* Quick database refresh indicator */}
+              <button 
+                onClick={onRefresh} 
+                className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1.5 cursor-pointer"
+                title="Sync database status"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Sync Cloud</span>
+              </button>
+            </div>
 
-            return (
-              <div className="space-y-5 animate-fadeIn">
+            {/* Topbar User dropdown */}
+            <div className="flex items-center gap-4 relative">
+              <button className="text-slate-400 hover:text-slate-600 transition">
+                <Calendar className="h-4.5 w-4.5" />
+              </button>
+              <button className="text-slate-400 hover:text-slate-600 transition">
+                <Bell className="h-4.5 w-4.5" />
+              </button>
+              <button className="text-slate-400 hover:text-slate-600 transition">
+                <Lightbulb className="h-4.5 w-4.5" />
+              </button>
 
-                {/* Greeting row + filters */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Hello yosef,
-                  </h2>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative">
-                      <select className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 pr-7 rounded-lg outline-none cursor-pointer hover:border-slate-300 transition shadow-xs">
-                        <option>Portfolio</option>
-                        <option>All Properties</option>
-                      </select>
-                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+              <div className="h-5 w-px bg-slate-200"></div>
+
+              {/* Profile drop trigger */}
+              <div className="relative">
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center gap-2 hover:bg-slate-50 px-2 py-1.5 rounded-xl transition cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs select-none">
+                    {initials}
+                  </div>
+                  <span className="hidden sm:inline-block text-xs font-bold text-slate-800 font-sans">
+                    {currentUser?.name ?? 'yosef Melaku'}
+                  </span>
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 z-50">
+                    <div className="px-4 py-2.5 border-b border-slate-100">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Signed in as</p>
+                      <p className="text-xs font-bold text-slate-800 truncate mt-0.5">{currentUser?.email}</p>
                     </div>
-                    <div className="relative">
-                      <select className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 pr-7 rounded-lg outline-none cursor-pointer hover:border-slate-300 transition shadow-xs">
-                        <option>Properties</option>
-                        <option>Houses & Villas</option>
-                        <option>Office Spaces</option>
-                        <option>Commercial Real Estate</option>
-                        <option>Apartments</option>
-                      </select>
-                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
-                    </div>
-                    <button className="bg-white border border-slate-200 text-slate-700 text-xs font-semibold px-3.5 py-2 rounded-lg hover:border-slate-300 transition shadow-xs cursor-pointer">
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        onSwitchToTenant();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 hover:text-emerald-600 font-semibold flex items-center gap-2 cursor-pointer"
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      <span>Switch to Tenant View</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        onLogout();
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-xs text-rose-600 hover:bg-rose-50 font-semibold flex items-center gap-2 border-t border-slate-100 cursor-pointer"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN WORKSPACE WRAPPER */}
+          <main className="p-6 md:p-8 flex-grow">
+
+            {/* TAB: DASHBOARD STATS WIDGETS */}
+            {activeSubTab === 'stats' && (
+              <div className="space-y-6 animate-fadeIn" id="owner-stats-portal-view">
+                
+                {/* Dashboard Title & Dropdown controls */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tight text-slate-900 capitalize">
+                      Hello {firstName},
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">Here is your property portfolio dashboard overview.</p>
+                  </div>
+
+                  {/* Dropdowns */}
+                  <div className="flex items-center gap-2">
+                    <button className="bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-200 transition">
+                      <span>Portfolio</span>
+                      <ChevronDown className="h-3 w-3 text-slate-400" />
+                    </button>
+                    <button className="bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-200 transition">
+                      <span>Properties</span>
+                      <ChevronDown className="h-3 w-3 text-slate-400" />
+                    </button>
+                    <button className="bg-slate-100 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 transition">
                       Categories
                     </button>
                   </div>
                 </div>
 
-                {/* 3 Stat Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
+                {/* Key Metrics row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Rent Received */}
-                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                    <p className="text-sm font-semibold text-slate-600 mb-3">Rent received</p>
-                    <div className="flex items-center gap-3">
-                      <div className="bg-emerald-100 text-emerald-600 p-2.5 rounded-xl">
-                        <Home className="h-5 w-5" />
-                      </div>
-                      <span className="text-2xl font-extrabold text-slate-900">
-                        USD{stats.totalEarnings.toFixed(2)}
-                      </span>
+                  <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xs relative overflow-hidden group">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">Rent received</span>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500">
-                      <span className="font-bold text-slate-700">USD{stats.totalEarnings.toFixed(0)}</span>
-                      <span>Received last month</span>
+                    <div className="mt-5 flex items-center gap-3.5">
+                      <div className="bg-emerald-500/10 text-emerald-600 p-3 rounded-full border border-emerald-500/20 shrink-0">
+                        <Home className="h-6 w-6" />
+                      </div>
+                      <p className="text-3xl font-black text-slate-900">USD {stats.totalEarnings.toFixed(2)}</p>
+                    </div>
+                    <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between text-xs">
+                      <span className="text-slate-400">USD {stats.totalEarnings.toFixed(0)} Received last month</span>
                     </div>
                   </div>
 
                   {/* Upcoming Payments */}
-                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                    <p className="text-sm font-semibold text-slate-600 mb-3">Upcoming payments</p>
-                    <div className="flex items-center gap-3">
-                      <div className="bg-blue-100 text-blue-600 p-2.5 rounded-xl">
-                        <Calendar className="h-5 w-5" />
-                      </div>
-                      <span className="text-2xl font-extrabold text-slate-900">USD0.00</span>
+                  <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xs relative overflow-hidden group">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">Upcoming payments</span>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                      0 payment
+                    <div className="mt-5 flex items-center gap-3.5">
+                      <div className="bg-blue-500/10 text-blue-600 p-3 rounded-full border border-blue-500/20 shrink-0">
+                        <Calendar className="h-6 w-6" />
+                      </div>
+                      <p className="text-3xl font-black text-slate-900">USD 0.00</p>
+                    </div>
+                    <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between text-xs">
+                      <span className="text-slate-400">0 payment</span>
                     </div>
                   </div>
 
                   {/* Rent Overdue */}
-                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                    <p className="text-sm font-semibold text-slate-600 mb-3">Rent overdue</p>
-                    <div className="flex items-center gap-3">
-                      <div className="bg-rose-100 text-rose-600 p-2.5 rounded-xl">
-                        <Clock3 className="h-5 w-5" />
-                      </div>
-                      <span className="text-2xl font-extrabold text-slate-900">USD0.00</span>
+                  <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xs relative overflow-hidden group">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">Rent overdue</span>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500">
-                      0 overdue
+                    <div className="mt-5 flex items-center gap-3.5">
+                      <div className="bg-rose-500/10 text-rose-600 p-3 rounded-full border border-rose-500/20 shrink-0">
+                        <Clock3 className="h-6 w-6" />
+                      </div>
+                      <p className="text-3xl font-black text-rose-600">USD 0.00</p>
+                    </div>
+                    <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between text-xs">
+                      <span className="text-slate-400">0 overdue</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Cashflow + Calendar row */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-                  {/* Cashflow — 2/3 width */}
-                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs lg:col-span-2 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <h3 className="text-base font-bold text-slate-800">Cashflow</h3>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                        <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-md">1 Jan 2026</span>
-                        <span className="text-slate-300">—</span>
-                        <span className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-md">31 Dec 2026</span>
-                      </div>
-                    </div>
-
-                    {/* INCOME / EXPENSES / NET dots */}
-                    <div className="flex items-center gap-5 text-xs font-semibold text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                        <span className="text-slate-900 font-bold">USD{stats.totalEarnings.toFixed(0)}</span>
-                        <span className="text-slate-400 font-normal">INCOME</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block" />
-                        <span className="text-slate-900 font-bold">USD0</span>
-                        <span className="text-slate-400 font-normal">EXPENSES</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-slate-800 inline-block" />
-                        <span className="text-slate-900 font-bold">USD{stats.totalEarnings.toFixed(0)}</span>
-                        <span className="text-slate-400 font-normal">NET</span>
-                      </div>
-                    </div>
-
-                    {/* Bar chart */}
-                    <div className="flex items-end justify-between gap-1.5 h-28 pt-2">
-                      {['J','F','M','A','M','J','J','A','S','O','N','D'].map((m, i) => {
-                        const isCurrentMonth = i === now.getMonth();
-                        const hasData = stats.totalEarnings > 0 && isCurrentMonth;
-                        return (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                            <div className="w-full rounded-t-md bg-slate-100 flex items-end h-20 overflow-hidden">
-                              <div
-                                className={`w-full transition-all duration-700 rounded-t-md ${hasData ? 'bg-slate-700' : 'bg-slate-200'}`}
-                                style={{ height: hasData ? '60%' : '8px' }}
-                              />
-                            </div>
-                            <span className={`text-[9px] font-bold ${isCurrentMonth ? 'text-slate-800' : 'text-slate-400'}`}>{m}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Calendar Widget — 1/3 width */}
-                  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-base font-bold text-slate-800">Calendar</h3>
-                    </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-bold text-slate-700">{monthName} {year}</span>
-                      <div className="flex gap-1">
-                        <button className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer rounded-md hover:bg-slate-100 transition">
-                          <ChevronDown className="h-4 w-4 rotate-90" />
-                        </button>
-                        <button className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer rounded-md hover:bg-slate-100 transition">
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Day headers */}
-                    <div className="grid grid-cols-7 mb-1">
-                      {dayHeaders.map((d, i) => (
-                        <div key={i} className="text-center text-[10px] font-bold text-slate-400 py-1">{d}</div>
-                      ))}
-                    </div>
-
-                    {/* Calendar days */}
-                    <div className="grid grid-cols-7 gap-y-0.5">
-                      {/* Empty cells before first day */}
-                      {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                        <div key={`e-${i}`} />
-                      ))}
-                      {Array.from({ length: daysInMonth }).map((_, i) => {
-                        const day = i + 1;
-                        const isToday = day === today;
-                        return (
-                          <div
-                            key={day}
-                            className={`flex items-center justify-center text-[11px] font-semibold h-7 w-7 mx-auto rounded-full cursor-pointer transition-all ${
-                              isToday
-                                ? 'bg-blue-600 text-white font-bold'
-                                : 'text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            {day}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Leasing Splits — bottom row */}
-                <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                  <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <PieChart className="h-4 w-4 text-indigo-500" />
-                    Leasing Splits by Category
-                  </h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {[
-                      { label: 'Houses & Villas', value: typeEarnings.villa, color: 'bg-emerald-500' },
-                      { label: 'Office Spaces',   value: typeEarnings.office, color: 'bg-blue-500' },
-                      { label: 'Commercial Real Estate', value: typeEarnings.realestate, color: 'bg-amber-500' },
-                      { label: 'Apartments & Studios',   value: typeEarnings.apartment, color: 'bg-indigo-500' },
-                    ].map(item => (
-                      <div key={item.label} className="flex items-center gap-2.5">
-                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.color}`} />
-                        <div>
-                          <p className="text-[10px] text-slate-400 font-medium leading-none">{item.label}</p>
-                          <p className="text-sm font-extrabold text-slate-800 mt-0.5">USD{item.value.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            );
-          })()}
-
-
-
-          {/* TAB 2: ORGANISATION */}
-          {activeTab === 'organisation' && (
-            <div className="bg-white border border-slate-200/80 rounded-3xl p-8 shadow-xs space-y-6 animate-fadeIn">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Organisation Management</h3>
-                <p className="text-sm text-slate-500 mt-1">Configure company profiles, lease systems, and billing tiers.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Organisation Name</label>
-                    <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 font-semibold">
-                      Melaku Property Management Ltd
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Primary Administrator</label>
-                    <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                      Yosef Melaku (yosefmelaku9876@gmail.com)
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200/50 p-6 rounded-3xl flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 px-3 py-1 rounded-full">
-                      Professional Plan
-                    </span>
-                    <h4 className="text-lg font-bold text-slate-800 mt-2">Evaluation Period</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      You are currently testing the multi-tenant real estate module suite with access to unlimited offices, villas, and reporting ledgers.
-                    </p>
-                  </div>
-                  <button className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-3 rounded-2xl mt-6 cursor-pointer shadow-xs">
-                    Upgrade Account License
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: PROPERTIES */}
-          {activeTab === 'properties' && (
-            showAddPropertyForm ? (
-              <form onSubmit={handleAddPropertySave} className="space-y-6 animate-fadeIn">
-                {/* Page header */}
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => { resetAddPropertyForm(); setShowAddPropertyForm(false); }}
-                      className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 mb-3 cursor-pointer"
-                    >
-                      <ArrowLeft className="h-4 w-4" /> Back
-                    </button>
-                    <h2 className="text-2xl font-bold text-slate-900">Add a property</h2>
-                    <p className="text-sm text-slate-500 mt-1">Get started by adding your property's address and details below.</p>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={propFormSaving}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold text-sm px-6 py-2.5 rounded-lg cursor-pointer transition-colors shrink-0"
-                  >
-                    {propFormSaving ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-
-                {propFormError && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-lg">{propFormError}</div>
-                )}
-                {propFormSuccess && (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" /> Property saved successfully!
-                  </div>
-                )}
-
-                {/* Two-column: General Info + Insurance */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* LEFT: General Information (2/3 width) */}
-                  <div className="md:col-span-2 bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">General Information</p>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Property address</label>
-                      <input
-                        type="text"
-                        placeholder="212 Kent Road"
-                        value={propAddress}
-                        onChange={e => setPropAddress(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Address line 2</label>
-                      <input
-                        type="text"
-                        value={propAddress2}
-                        onChange={e => setPropAddress2(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                {/* Cashflow & Calendar Row */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Cashflow Graphic Widget */}
+                  <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-xs lg:col-span-2 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Suburb</label>
-                        <input type="text" value={propSuburb} onChange={e => setPropSuburb(e.target.value)}
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        <h3 className="text-sm font-extrabold flex items-center gap-2 text-slate-800">
+                          <TrendingUp className="h-4.5 w-4.5 text-emerald-500" />
+                          <span>Cashflow</span>
+                        </h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Overview of operational income & expenses.</p>
                       </div>
+                      
+                      {/* Date values */}
+                      <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3.5 py-1.5 rounded-2xl text-xs font-bold text-slate-700">
+                        <span>1 Jan 2026</span>
+                        <span className="text-slate-300 mx-1">|</span>
+                        <span>31 Dec 2026</span>
+                      </div>
+                    </div>
+
+                    {/* Totals info panel */}
+                    <div className="flex items-center justify-around bg-slate-50 border border-slate-100 py-3.5 rounded-2xl text-center">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
-                        <input type="text" value={propCity} onChange={e => setPropCity(e.target.value)}
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">USD {stats.totalEarnings.toFixed(0)}</span>
+                        <div className="flex items-center gap-1.5 justify-center mt-0.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">INCOME</span>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                      <div className="h-8 w-px bg-slate-200"></div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">State / Province</label>
-                        <input type="text" value={propState} onChange={e => setPropState(e.target.value)}
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">USD 0</span>
+                        <div className="flex items-center gap-1.5 justify-center mt-0.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-300"></span>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">EXPENSES</span>
+                        </div>
                       </div>
+                      <div className="h-8 w-px bg-slate-200"></div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">ZIP / Postcode</label>
-                        <input type="text" value={propZip} onChange={e => setPropZip(e.target.value)}
-                          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Country</label>
-                      <input type="text" value={propCountry} onChange={e => setPropCountry(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                  </div>
-
-                  {/* RIGHT: Insurance (1/3 width) */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Insurance</p>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Current insurance provider</label>
-                      <input
-                        type="text"
-                        placeholder="Enter insurance provider"
-                        value={propInsuranceProvider}
-                        onChange={e => setPropInsuranceProvider(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm placeholder-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Annual premium</label>
-                      <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
-                        <span className="bg-slate-50 border-r border-slate-200 px-3 py-2 text-sm text-slate-500 font-medium">USD</span>
-                        <input
-                          type="text"
-                          value={propAnnualPremium}
-                          onChange={e => setPropAnnualPremium(e.target.value)}
-                          className="flex-1 px-3 py-2 text-sm focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Renewal date</label>
-                      <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
-                        <input
-                          type="date"
-                          value={propRenewalDate}
-                          onChange={e => setPropRenewalDate(e.target.value)}
-                          className="flex-1 px-3 py-2 text-sm focus:outline-none text-slate-500"
-                        />
-                        <Calendar className="h-4 w-4 text-slate-400 mr-3" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Property Type */}
-                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Property Type</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      {
-                        value: 'house' as const,
-                        title: 'Single Family Home',
-                        desc: 'A single family home is a standalone property like a town house with only one lease.',
-                      },
-                      {
-                        value: 'apartment' as const,
-                        title: 'Multi-unit',
-                        desc: 'A multi-unit or HMO is a single building with multiple units and leases such as a duplex or apartment block.',
-                      },
-                    ].map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setPropType(opt.value)}
-                        className={`text-left p-5 rounded-xl border-2 transition-all cursor-pointer ${
-                          propType === opt.value
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            propType === opt.value ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
-                          }`}>
-                            {propType === opt.value && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                          </div>
-                          <span className={`font-semibold text-sm ${propType === opt.value ? 'text-blue-700' : 'text-slate-800'}`}>
-                            {opt.title}
-                          </span>
-                        </div>
-                        <p className={`text-xs leading-relaxed ml-7 ${propType === opt.value ? 'text-blue-600' : 'text-slate-500'}`}>
-                          {opt.desc}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Features */}
-                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Features</p>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Total area (m²)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={propTotalArea}
-                        onChange={e => setPropTotalArea(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Bedrooms</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        placeholder="0.0"
-                        value={propBedrooms}
-                        onChange={e => setPropBedrooms(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Bathrooms</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        placeholder="0.0"
-                        value={propBathrooms}
-                        onChange={e => setPropBathrooms(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Property Image */}
-                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Property Image</p>
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        placeholder="https://images.unsplash.com/... (optional)"
-                        value={propImageUrl.startsWith('data:') ? '[Local image loaded]' : propImageUrl}
-                        onChange={e => { if (!e.target.value.startsWith('[Local')) setPropImageUrl(e.target.value); }}
-                        className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      />
-                      <label className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 cursor-pointer">
-                        <Upload className="h-4 w-4" /> Upload
-                        <input type="file" accept="image/*" className="hidden" onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (file) { const r = new FileReader(); r.onloadend = () => { if (typeof r.result === 'string') setPropImageUrl(r.result); }; r.readAsDataURL(file); }
-                        }} />
-                      </label>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {PRESET_IMAGES.map(img => (
-                        <button key={img.name} type="button" onClick={() => setPropImageUrl(img.url)}
-                          className={`p-2 rounded-lg border text-xs font-medium text-left cursor-pointer transition ${propImageUrl === img.url ? 'bg-blue-50 border-blue-400 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                          {img.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </form>
-            ) : (
-            <div className="space-y-6 animate-fadeIn">
-              {/* Header row */}
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-900">Properties</h2>
-                <button
-                  onClick={() => setShowAddPropertyForm(true)}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add property
-                </button>
-              </div>
-
-              {/* Filter tabs */}
-              <div className="flex items-center gap-0 border-b border-slate-200 overflow-x-auto">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'overdue', label: 'Rent overdue', count: 0 },
-                  { id: 'due-soon', label: 'Rent due soon', count: 0 },
-                  { id: 'due-later', label: 'Rent due later', count: 0 },
-                  { id: 'vacant', label: 'Vacant', count: 0 },
-                  { id: 'multi-unit', label: 'Multi-Unit' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setPropertyFilter(tab.id)}
-                    className={`px-4 py-3 text-sm font-semibold whitespace-nowrap transition-colors cursor-pointer border-b-2 -mb-px ${
-                      propertyFilter === tab.id
-                        ? 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {tab.label}
-                    {'count' in tab && tab.count !== undefined && (
-                      <span className={`ml-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                        propertyFilter === tab.id ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Empty state or property list */}
-              {ownerListings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <svg width="200" height="160" viewBox="0 0 200 160" fill="none" className="mb-6 opacity-80">
-                    <ellipse cx="100" cy="145" rx="60" ry="8" fill="#e2e8f0"/>
-                    <rect x="130" y="60" width="28" height="70" rx="3" fill="#cbd5e1"/>
-                    <rect x="135" y="70" width="7" height="10" rx="1" fill="#94a3b8"/>
-                    <rect x="146" y="70" width="7" height="10" rx="1" fill="#94a3b8"/>
-                    <rect x="135" y="85" width="7" height="10" rx="1" fill="#94a3b8"/>
-                    <rect x="146" y="85" width="7" height="10" rx="1" fill="#94a3b8"/>
-                    <rect x="135" y="100" width="7" height="10" rx="1" fill="#94a3b8"/>
-                    <rect x="146" y="100" width="7" height="10" rx="1" fill="#94a3b8"/>
-                    <rect x="158" y="80" width="22" height="50" rx="3" fill="#dde3ed"/>
-                    <rect x="162" y="88" width="5" height="8" rx="1" fill="#94a3b8"/>
-                    <rect x="170" y="88" width="5" height="8" rx="1" fill="#94a3b8"/>
-                    <rect x="162" y="100" width="5" height="8" rx="1" fill="#94a3b8"/>
-                    <rect x="170" y="100" width="5" height="8" rx="1" fill="#94a3b8"/>
-                    <rect x="55" y="75" width="70" height="55" rx="4" fill="#dbeafe"/>
-                    <polygon points="55,75 90,45 125,75" fill="#bfdbfe"/>
-                    <rect x="80" y="100" width="20" height="30" rx="2" fill="#93c5fd"/>
-                    <rect x="60" y="82" width="14" height="14" rx="2" fill="#93c5fd"/>
-                    <rect x="106" y="82" width="14" height="14" rx="2" fill="#93c5fd"/>
-                    <circle cx="52" cy="88" r="10" fill="#1e293b"/>
-                    <rect x="44" y="98" width="16" height="28" rx="4" fill="#334155"/>
-                    <line x1="44" y1="110" x2="30" y2="125" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
-                    <line x1="60" y1="110" x2="68" y2="120" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
-                    <line x1="44" y1="126" x2="40" y2="145" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
-                    <line x1="60" y1="126" x2="64" y2="145" stroke="#334155" strokeWidth="5" strokeLinecap="round"/>
-                    <circle cx="72" cy="100" r="14" stroke="#3b82f6" strokeWidth="3" fill="white" fillOpacity="0.6"/>
-                    <line x1="82" y1="110" x2="92" y2="122" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round"/>
-                  </svg>
-                  <p className="text-sm text-slate-500 max-w-xs">
-                    You haven't added any properties yet. Start by clicking + Add Property to add your first one!
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {ownerListings.map((property) => (
-                    <div key={property.id} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col">
-                      <div className="relative aspect-video bg-slate-100">
-                        <img src={property.image} alt={property.title} className="w-full h-full object-cover" />
-                        <button
-                          onClick={async () => {
-                            if (window.confirm('Remove this property?')) await onDeleteListing(property.id);
-                          }}
-                          className="absolute top-3 right-3 bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 p-1.5 rounded-lg shadow-sm border border-slate-100 transition cursor-pointer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <div className="p-4 space-y-2">
-                        <h4 className="font-semibold text-slate-800 truncate">{property.title}</h4>
-                        <div className="flex items-center text-xs text-slate-400">
-                          <MapPin className="h-3 w-3 mr-1" />{property.location}
-                        </div>
-                        {property.lat && property.lng && (
-                          <div className="rounded-lg overflow-hidden border border-slate-100" style={{ height: '120px', width: '100%' }}>
-                            <MapView lat={property.lat} lng={property.lng} />
-                          </div>
-                        )}
-                        <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
-                          <span className="font-bold text-slate-800">${property.price}/night</span>
-                          <span className="text-slate-400">{property.beds}bd · {property.baths}ba</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">USD {stats.totalEarnings.toFixed(0)}</span>
+                        <div className="flex items-center gap-1.5 justify-center mt-0.5">
+                          <span className="w-2 h-2 rounded-full bg-slate-900"></span>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">NET</span>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            )
-          )}
 
-          {/* TAB 4: REPORTS (Matches screenshot exactly!) */}
-          {activeTab === 'reports' && (
-            <div className="space-y-8 animate-fadeIn">
-              
-              {/* Reports Section */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reports</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* P&L Summary */}
-                  <button 
-                    onClick={() => setSelectedReport('p&l')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">P&L Summary</h4>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        This report shows a one line summary of the total income and expense assigned to a property.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Income Expense Statement */}
-                  <button 
-                    onClick={() => setSelectedReport('income-expense')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-indigo-50 text-indigo-600 p-3 rounded-2xl group-hover:bg-indigo-500 group-hover:text-white transition">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">Income Expense Statement</h4>
-                          <span className="bg-slate-200 text-slate-600 font-mono text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider scale-90 shrink-0">Legacy</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        This report shows details of income & expenses (incl. running balance) assigned to each property.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Breakdown Statement */}
-                  <button 
-                    onClick={() => setSelectedReport('breakdown')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-slate-100 text-slate-600 p-3 rounded-2xl group-hover:bg-slate-600 group-hover:text-white transition">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">Breakdown Statement</h4>
-                          <span className="bg-slate-200 text-slate-600 font-mono text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider scale-90 shrink-0">Legacy</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        This report shows the income and expenses assigned to each property grouped by category.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Schedule E */}
-                  <button 
-                    onClick={() => setSelectedReport('schedule-e')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-slate-100 text-slate-600 p-3 rounded-2xl group-hover:bg-slate-600 group-hover:text-white transition">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">Schedule E</h4>
-                          <span className="bg-slate-200 text-slate-600 font-mono text-[9px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider scale-90 shrink-0">Legacy</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        This report makes filing Schedule E easy. It groups multi-units and displays your income & expense by category.
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Rent Payments Section */}
-              <div className="space-y-4 pt-4 border-t border-slate-200">
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Rent Payments</h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Rent Ledger */}
-                  <button 
-                    onClick={() => setSelectedReport('rent-ledger')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">Rent Ledger</h4>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        Provides a complete list of payments due versus payments logged over a specified time period. Unlike other reports which are cash basis, this report is generated on **accrual basis**.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Overdue Rent Payments */}
-                  <button 
-                    onClick={() => setSelectedReport('overdue-payments')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-rose-50 text-rose-600 p-3 rounded-2xl group-hover:bg-rose-500 group-hover:text-white transition">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">Overdue Rent Payments</h4>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        This report shows a list of all overdue rent payments and late fees in your selected time period.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Rent Payment Difference */}
-                  <button 
-                    onClick={() => setSelectedReport('rent-diff')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">Rent Payment Difference</h4>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        View a summary of missed and overdue rent payments to spot income transaction discrepancies.
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Rent Changes */}
-                  <button 
-                    onClick={() => setSelectedReport('rent-changes')}
-                    className="flex items-start gap-4 p-5 rounded-3xl border border-slate-200/80 bg-white hover:border-emerald-500 hover:bg-emerald-500/5 hover:shadow-md transition text-left cursor-pointer group w-full"
-                  >
-                    <div className="bg-slate-100 text-slate-600 p-3 rounded-2xl group-hover:bg-slate-600 group-hover:text-white transition">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-800 text-sm group-hover:text-emerald-700 transition">Rent Changes</h4>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                        This report shows all past and scheduled changes to rent amounts for the selected properties.
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 5: FIND TENANTS */}
-          {activeTab === 'find-tenants' && (
-            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xs overflow-hidden animate-fadeIn">
-              <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="text-lg font-bold text-slate-800">Rental Inquiries & Tenant Applications</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Collect applications, run background screening logs, and approve leases.</p>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-slate-50/30 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      <th className="p-4">Applicant Name</th>
-                      <th className="p-4">Target space</th>
-                      <th className="p-4">Monthly Income</th>
-                      <th className="p-4">Credit Check</th>
-                      <th className="p-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    <tr className="hover:bg-slate-50/30 transition">
-                      <td className="p-4 font-bold text-slate-800">Abebe Kebede</td>
-                      <td className="p-4">Executive Office Space B</td>
-                      <td className="p-4">$12,000 / mo</td>
-                      <td className="p-4 text-emerald-600 font-semibold">Passed (Score: 780)</td>
-                      <td className="p-4">
-                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100">Approved</span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-slate-50/30 transition">
-                      <td className="p-4 font-bold text-slate-800">Sarah Jenkins</td>
-                      <td className="p-4">Luxury Ocean Villa</td>
-                      <td className="p-4">$18,500 / mo</td>
-                      <td className="p-4 text-emerald-600 font-semibold">Passed (Score: 810)</td>
-                      <td className="p-4">
-                        <span className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-100 animate-pulse">Under Review</span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-slate-50/30 transition">
-                      <td className="p-4 font-bold text-slate-800">John Doe Corp</td>
-                      <td className="p-4">Commercial Plaza Showroom</td>
-                      <td className="p-4">$45,000 / mo</td>
-                      <td className="p-4 text-blue-600 font-semibold">In Progress</td>
-                      <td className="p-4">
-                        <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">Submitted</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: INTEGRATIONS */}
-          {activeTab === 'integrations' && (
-            <div className="space-y-6 animate-fadeIn">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">Platform Integrations</h3>
-                <p className="text-xs text-slate-500">Connect bookkeeping, payment processing, and calendar modules.</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                {[
-                  { name: 'Stripe Payments', desc: 'Accept online rent payments automatically.', status: 'Active', color: 'bg-emerald-50 text-emerald-700' },
-                  { name: 'QuickBooks Online', desc: 'Sync cashflows and ledgers directly for tax season.', status: 'Connect', color: 'bg-slate-100 text-slate-700' },
-                  { name: 'Google Calendars', desc: 'Sync checkout/check-in alerts.', status: 'Connect', color: 'bg-slate-100 text-slate-700' },
-                  { name: 'DocuSign Lease', desc: 'Automate residential and commercial lease signing.', status: 'Connect', color: 'bg-slate-100 text-slate-700' },
-                ].map((item) => (
-                  <div key={item.name} className="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-slate-800 text-sm">{item.name}</h4>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.color}`}>{item.status}</span>
-                      </div>
-                      <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
-                    </div>
-                    <button className="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs py-2 rounded-xl border border-slate-200 mt-6 cursor-pointer transition">
-                      Configure
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 7: MAINTENANCE — Kanban Board */}
-          {activeTab === 'maintenance' && (() => {
-            const allProps = ['All Properties', ...Array.from(new Set(maintenanceRequests.map(r => r.property)))];
-
-            const filtered = maintenanceRequests.filter(r => {
-              const propOk = maintenancePropFilter === 'All Properties' || r.property === maintenancePropFilter;
-              const priOk = maintenancePriorityFilters.length === 0 || maintenancePriorityFilters.includes(r.priority);
-              return propOk && priOk;
-            });
-
-            const togglePriority = (p: string) => {
-              setMaintenancePriorityFilters(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
-            };
-
-            const columns: { key: string; label: string }[] = [
-              { key: 'Open',        label: 'NEW'         },
-              { key: 'In Progress', label: 'IN PROGRESS' },
-              { key: 'Completed',   label: 'COMPLETED'   },
-            ];
-
-            return (
-              <div className="space-y-5 animate-fadeIn">
-
-                {/* Page title + toolbar */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-2xl font-bold text-slate-900 mr-2">Maintenance</h2>
-                  <div className="flex-1" />
-
-                  {/* Properties dropdown */}
-                  <div className="relative">
-                    <select
-                      value={maintenancePropFilter}
-                      onChange={e => setMaintenancePropFilter(e.target.value)}
-                      className="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-medium px-4 py-2 pr-8 rounded-lg outline-none cursor-pointer hover:border-slate-300 transition"
-                    >
-                      {allProps.map(p => <option key={p}>{p}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                  </div>
-
-                  {/* Filter button + panel */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowMaintenanceFilterPanel(v => !v)}
-                      className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg hover:border-slate-300 transition cursor-pointer"
-                    >
-                      Filter
-                      <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                    </button>
-
-                    {showMaintenanceFilterPanel && (
-                      <div className="absolute right-0 top-11 z-50 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl p-5 space-y-5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-800">Filter</span>
-                          <button
-                            onClick={() => { setMaintenancePriorityFilters([]); setMaintenanceCompletedIn('Last 60 days'); }}
-                            className="text-xs text-blue-600 hover:underline cursor-pointer font-semibold"
-                          >
-                            Clear all
-                          </button>
-                        </div>
-
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Search"
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 pr-8"
-                          />
-                          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-1.5">
-                              <ChevronDown className="h-4 w-4 text-slate-500" />
-                              <span className="text-sm font-semibold text-slate-700">Priorities</span>
-                            </div>
-                            <button
-                              onClick={() => setMaintenancePriorityFilters(['low','medium','high','urgent'])}
-                              className="text-xs text-blue-600 hover:underline cursor-pointer font-semibold"
-                            >
-                              Select all
-                            </button>
-                          </div>
-                          <div className="space-y-2.5">
-                            {['Low','Medium','High','Urgent'].map(p => (
-                              <label key={p} className="flex items-center gap-2.5 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="priority-filter"
-                                  checked={maintenancePriorityFilters.includes(p.toLowerCase())}
-                                  onChange={() => togglePriority(p.toLowerCase())}
-                                  className="w-4 h-4 accent-blue-600 cursor-pointer"
-                                />
-                                <span className="text-sm text-slate-700">{p}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-3">
-                            <ChevronDown className="h-4 w-4 text-slate-500" />
-                            <span className="text-sm font-semibold text-slate-700">Completed in</span>
-                          </div>
-                          <div className="space-y-2.5">
-                            {['Last 60 days','Last 90 days','Last 12 months','Last 2 years','All time'].map(opt => (
-                              <label key={opt} className="flex items-center gap-2.5 cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name="completed-in"
-                                  checked={maintenanceCompletedIn === opt}
-                                  onChange={() => setMaintenanceCompletedIn(opt)}
-                                  className="w-4 h-4 accent-blue-600 cursor-pointer"
-                                />
-                                <span className="text-sm text-slate-700">{opt}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* New Request button */}
-                  <button
-                    onClick={() => setShowNewRequestModal(true)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition cursor-pointer"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New request
-                  </button>
-                </div>
-
-                {/* Kanban Board Columns */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                  {columns.map(col => {
-                    const cards = filtered.filter(r => r.status === col.key);
-                    return (
-                      <div key={col.key} className="flex flex-col gap-3">
-                        {/* Column Header */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold tracking-widest uppercase text-slate-500">{col.label}</span>
-                          {cards.length > 0 && (
-                            <span className="bg-slate-200 text-slate-600 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{cards.length}</span>
-                          )}
-                        </div>
-
-                        {/* Column body */}
-                        <div className="min-h-[300px] rounded-xl border border-slate-200 bg-[#f1f3f6] p-3 flex flex-col gap-3">
-                          {cards.length === 0 ? (
-                            /* Empty state matching LandlordStudio screenshot */
-                            <div className="flex-1 flex flex-col items-center justify-center gap-3 py-10 text-center">
-                              {col.key === 'In Progress' ? (
-                                <>
-                                  {/* Houses + trees illustration */}
-                                  <svg width="100" height="80" viewBox="0 0 100 80" fill="none">
-                                    <ellipse cx="50" cy="72" rx="38" ry="6" fill="#dde3ed"/>
-                                    {/* Left tree */}
-                                    <rect x="10" y="50" width="4" height="16" rx="1" fill="#94a3b8"/>
-                                    <ellipse cx="12" cy="44" rx="7" ry="10" fill="#6366f1"/>
-                                    <ellipse cx="9" cy="48" rx="5" ry="7" fill="#818cf8"/>
-                                    {/* Right tree */}
-                                    <rect x="84" y="50" width="4" height="16" rx="1" fill="#94a3b8"/>
-                                    <ellipse cx="86" cy="44" rx="7" ry="10" fill="#6366f1"/>
-                                    <ellipse cx="89" cy="48" rx="5" ry="7" fill="#818cf8"/>
-                                    {/* Left house */}
-                                    <rect x="22" y="42" width="24" height="24" rx="2" fill="#cbd5e1"/>
-                                    <polygon points="22,42 34,28 46,42" fill="#94a3b8"/>
-                                    <rect x="29" y="54" width="10" height="12" rx="1" fill="#64748b"/>
-                                    <rect x="24" y="46" width="7" height="7" rx="1" fill="#e2e8f0"/>
-                                    <rect x="38" y="46" width="7" height="7" rx="1" fill="#e2e8f0"/>
-                                    {/* Right house */}
-                                    <rect x="54" y="45" width="22" height="21" rx="2" fill="#dde3ed"/>
-                                    <polygon points="54,45 65,33 76,45" fill="#b6c2d4"/>
-                                    <rect x="60" y="55" width="9" height="11" rx="1" fill="#64748b"/>
-                                    <rect x="56" y="48" width="6" height="6" rx="1" fill="#e2e8f0"/>
-                                    <rect x="69" y="48" width="6" height="6" rx="1" fill="#e2e8f0"/>
-                                  </svg>
-                                  <p className="text-xs text-slate-500 font-medium">You have no maintenance requests</p>
-                                </>
-                              ) : (
-                                <p className="text-xs text-slate-400 font-medium mt-8">No requests</p>
-                              )}
-                            </div>
-                          ) : (
-                            cards.map(req => (
-                              <div
-                                key={req.id}
-                                className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs space-y-3 hover:shadow-md transition-all"
-                              >
-                                {/* Card Header */}
-                                <div className="flex items-start justify-between gap-2">
-                                  <p className="text-xs font-bold text-slate-700 leading-snug flex-1 truncate">{req.property}</p>
-                                  <span className={`shrink-0 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                                    req.priority === 'high'   ? 'bg-rose-50 text-rose-700' :
-                                    req.priority === 'medium' ? 'bg-amber-50 text-amber-700' :
-                                    'bg-slate-100 text-slate-500'
-                                  }`}>
-                                    {req.priority}
-                                  </span>
-                                </div>
-
-                                {/* Issue */}
-                                <p className="text-xs text-slate-500 leading-relaxed">{req.issue}</p>
-
-                                {/* Reporter */}
-                                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                                  <User className="h-3 w-3" />
-                                  <span>{req.guest}</span>
-                                </div>
-
-                                {/* Footer */}
-                                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                                  <span className="text-[10px] text-slate-400">{req.updatedAt}</span>
-                                  <select
-                                    value={req.status}
-                                    onChange={e => handleMaintenanceStatusChange(req.id, e.target.value)}
-                                    className="text-[10px] font-semibold border border-slate-200 bg-slate-50 rounded-lg px-2 py-1 outline-none cursor-pointer text-slate-600 hover:border-blue-400 transition"
-                                  >
-                                    <option value="Open">New</option>
-                                    <option value="In Progress">In Progress</option>
-                                    <option value="Completed">Completed</option>
-                                  </select>
-                                </div>
+                    {/* Chart Bars */}
+                    <div className="pt-4">
+                      <div className="flex items-end justify-between h-24 gap-2.5 px-2">
+                        {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'].map((month, i) => {
+                          const isCurrent = month === 'JUL';
+                          const barHeight = stats.totalEarnings > 0 && i === 6 ? 'h-full bg-blue-500' : 'h-1 bg-slate-200';
+                          return (
+                            <div key={month} className="flex-grow flex flex-col items-center gap-2 group cursor-pointer">
+                              <div className="w-full bg-slate-50 border border-slate-100 rounded-lg flex items-end h-16 overflow-hidden">
+                                <div className={`w-full transition-all duration-500 rounded-t-sm ${barHeight}`} />
                               </div>
-                            ))
-                          )}
+                              <span className={`text-[9px] font-bold ${isCurrent ? 'text-blue-500' : 'text-slate-400'} group-hover:text-slate-700`}>{month}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Calendar Mini-Widget */}
+                  <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-xs flex flex-col justify-between space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                        <Calendar className="h-4.5 w-4.5 text-blue-500" />
+                        <span>Calendar</span>
+                      </h4>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-1">
+                        <span>July 2026</span>
+                        <div className="flex items-center gap-2">
+                          <button className="p-1 hover:bg-slate-50 rounded">&lt;</button>
+                          <button className="p-1 hover:bg-slate-50 rounded">&gt;</button>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      <div className="text-center">
+                        <div className="grid grid-cols-7 text-[9px] font-bold text-slate-400 uppercase mb-2">
+                          <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                        </div>
+                        <div className="grid grid-cols-7 text-xs gap-y-1 bg-slate-50 p-2 rounded-2xl border border-slate-100 font-medium">
+                          {/* Blank slots */}
+                          <span></span><span></span><span></span>
+                          {[...Array(31)].map((_, idx) => {
+                            const day = idx + 1;
+                            const isToday = day === 4;
+                            return (
+                              <span 
+                                key={day} 
+                                className={`py-1 rounded-md transition ${isToday ? 'bg-blue-600 text-white font-extrabold shadow-sm shadow-blue-600/10' : 'text-slate-500 hover:bg-slate-200/50'}`}
+                              >
+                                {day}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 text-center font-medium italic">No events for the selected month</p>
+                    </div>
+
+                    <button 
+                      onClick={() => setActiveSubTab('bookings')}
+                      className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl py-2 text-xs font-extrabold text-slate-600 transition cursor-pointer"
+                    >
+                      Open calendar
+                    </button>
+                  </div>
                 </div>
 
-                {/* New Request Modal */}
-                {showNewRequestModal && (
-                  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-5 relative">
-                      <button
-                        onClick={() => setShowNewRequestModal(false)}
-                        className="absolute top-5 right-5 text-slate-400 hover:text-slate-800 cursor-pointer p-1"
-                      >
-                        <XCircle className="h-5 w-5" />
-                      </button>
-                      <div>
-                        <h3 className="text-xl font-extrabold text-slate-900">New Maintenance Request</h3>
-                        <p className="text-xs text-slate-400 mt-1">Report an issue with one of your properties</p>
+                {/* Additional Bento widgets (Leads, Properties, ROI, Valuation) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  
+                  {/* Top expense categories widget */}
+                  <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xs flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-3">Top expense categories</span>
+                      <div className="flex justify-between items-center bg-slate-50 border border-slate-100 p-2.5 rounded-xl mb-3">
+                        <span className="text-xs font-semibold text-slate-500">TOTAL</span>
+                        <span className="text-xs font-extrabold text-slate-800">USD 0</span>
                       </div>
-                      <form onSubmit={handleNewRequestSubmit} className="space-y-4">
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-600">Property *</label>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between text-slate-500">
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500"></span>Overdue</span>
+                          <span className="font-bold text-slate-700">USD 0</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500">
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"></span>Paid</span>
+                          <span className="font-bold text-slate-700">USD 0</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500">
+                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span>Upcoming</span>
+                          <span className="font-bold text-slate-700">USD 0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Listings view & create */}
+                  <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xs flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Listings</span>
+                      <button 
+                        onClick={() => setActiveSubTab('listings')}
+                        className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                      >
+                        View all
+                      </button>
+                    </div>
+                    {ownerListings.length === 0 ? (
+                      <div className="py-4 text-center space-y-3">
+                        <p className="text-slate-400 text-xs">You have no live listings.</p>
+                        <button
+                          onClick={() => setActiveSubTab('add')}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+                        >
+                          Create listing
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="py-3">
+                        <p className="text-3xl font-black text-emerald-600">{ownerListings.length}</p>
+                        <p className="text-[10px] text-slate-400 mt-1">Live active units list</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Properties Types list */}
+                  <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xs flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-3">Properties</span>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between text-slate-500">
+                          <span>Units</span>
+                          <span className="font-bold text-slate-700">{ownerListings.filter(l => l.type === 'apartment' || l.type === 'studio').length}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-500">
+                          <span>Single family homes</span>
+                          <span className="font-bold text-slate-700">{ownerListings.filter(l => l.type === 'house' || l.type === 'villa').length}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between text-xs">
+                      <span className="text-slate-400 font-bold uppercase">TOTAL</span>
+                      <span className="font-extrabold text-emerald-600">{ownerListings.length}</span>
+                    </div>
+                  </div>
+
+                  {/* Property Valuation */}
+                  <div className="bg-white border border-slate-100 rounded-[2rem] p-6 shadow-xs flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-3">Property valuation</span>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">NET GAIN</span>
+                        <span className="text-sm font-extrabold text-slate-800">USD 0</span>
+                        <span className="text-[10px] font-bold text-emerald-500">(0%)</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 text-[10px] text-slate-400 border-t border-slate-100 pt-3 mt-3">
+                      <div className="flex justify-between">
+                        <span>CURRENT VALUATION:</span>
+                        <span className="font-bold text-slate-700">USD 0</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>PURCHASE PRICE:</span>
+                        <span className="font-bold text-slate-700">USD 0</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB: PROPERTIES / MY LISTINGS */}
+            {(activeSubTab === 'listings' || activeSubTab === 'add') && (
+              <div className="space-y-0 animate-fadeIn" id="owner-properties-portal-view">
+                
+                {/* Header: Listings title + New Listing button */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-2">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Listings</h2>
+                  <button
+                    onClick={() => setActiveSubTab(activeSubTab === 'add' ? 'listings' : 'add')}
+                    className="bg-[#ff445a] hover:bg-[#e63046] text-white font-bold text-sm px-5 py-2.5 rounded-lg shadow-sm transition cursor-pointer flex items-center gap-2 shrink-0"
+                  >
+                    {activeSubTab === 'add' ? (
+                      <>
+                        <Building className="h-4 w-4" />
+                        <span>View Listings</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        <span>New listing</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Sub Tab View: List of properties */}
+                {activeSubTab === 'listings' && (
+                  <div className="space-y-0">
+                    {/* Tab bar: All / Published / Drafts */}
+                    <div className="border-b border-slate-200 mb-8">
+                      <div className="flex items-center gap-8">
+                        <button className="relative pb-3 text-sm font-bold text-blue-600 transition">
+                          All
+                          <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-t-full" />
+                        </button>
+                        <button className="pb-3 text-sm font-medium text-slate-400 hover:text-slate-600 transition">
+                          Published
+                        </button>
+                        <button className="pb-3 text-sm font-medium text-slate-400 hover:text-slate-600 transition">
+                          Drafts
+                        </button>
+                      </div>
+                    </div>
+
+                    {ownerListings.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {ownerListings.map((property) => (
+                          <div 
+                            key={property.id} 
+                            className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-xs hover:shadow-md transition flex flex-col justify-between"
+                          >
+                            <div className="relative aspect-video bg-slate-100">
+                              <img src={property.image} alt={property.title} className="w-full h-full object-cover" />
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm('Are you absolutely sure you want to remove this property listing from the live rental network?')) {
+                                    await onDeleteListing(property.id);
+                                  }
+                                }}
+                                className="absolute top-3 right-3 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 p-2 rounded-xl shadow-xs border border-slate-100 transition cursor-pointer"
+                                title="Remove Property"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                              <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">
+                                {property.type}
+                              </span>
+                            </div>
+
+                            <div className="p-5 space-y-3">
+                              <h4 className="font-bold text-slate-900 text-sm leading-snug truncate">{property.title}</h4>
+                              <div className="flex items-center text-xs text-slate-500">
+                                <MapPin className="h-3.5 w-3.5 mr-1 text-slate-400" />
+                                <span>{property.location}</span>
+                              </div>
+
+                              <div className="flex justify-between items-baseline pt-3 border-t border-slate-50">
+                                <span className="text-xs font-bold text-slate-800">${property.price} / night</span>
+                                <span className="text-[10px] text-slate-400 font-mono">Rating: {property.rating.toFixed(1)} ★</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Empty state: Phone mockup illustration matching LandlordStudio */
+                      <div className="flex flex-col items-center justify-center py-16">
+                        <div className="relative">
+                          {/* Phone device frame */}
+                          <div className="w-48 h-72 bg-white rounded-[2rem] border-[3px] border-slate-300 shadow-lg overflow-hidden flex flex-col relative">
+                            {/* Phone top notch */}
+                            <div className="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mt-2 mb-2" />
+                            
+                            {/* Phone screen content */}
+                            <div className="flex-1 mx-2 mb-2 bg-slate-50 rounded-xl overflow-hidden flex flex-col">
+                              {/* Mini property card in phone */}
+                              <div className="p-3 flex-1 flex flex-col items-center justify-center">
+                                {/* House illustration */}
+                                <div className="relative mb-3">
+                                  <div className="w-24 h-16 bg-blue-100 rounded-lg relative overflow-hidden">
+                                    {/* House roof */}
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[48px] border-r-[48px] border-b-[20px] border-l-transparent border-r-transparent border-b-blue-300" />
+                                    {/* House body */}
+                                    <div className="absolute bottom-0 left-2 right-2 h-8 bg-blue-200 rounded-t-sm">
+                                      {/* Window */}
+                                      <div className="absolute top-1.5 left-2 w-3 h-3 bg-white/80 rounded-sm" />
+                                      <div className="absolute top-1.5 right-2 w-3 h-3 bg-white/80 rounded-sm" />
+                                      {/* Door */}
+                                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-5 bg-blue-400 rounded-t-sm" />
+                                    </div>
+                                  </div>
+                                  {/* Small triangle roof accent */}
+                                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                                    <Home className="h-5 w-5 text-blue-400" />
+                                  </div>
+                                </div>
+
+                                {/* SELECT button in phone */}
+                                <button className="bg-blue-600 text-white text-[8px] font-bold px-5 py-1.5 rounded-md tracking-wider uppercase shadow-sm">
+                                  SELECT
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Floating heart icon */}
+                          <div className="absolute -top-2 -right-6 w-9 h-9 bg-white rounded-full border-2 border-emerald-400 flex items-center justify-center shadow-md">
+                            <svg className="w-4 h-4 text-emerald-500 fill-emerald-500" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="0">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                            </svg>
+                          </div>
+                        </div>
+
+                        <p className="text-slate-400 text-sm mt-8 text-center max-w-xs">No listings yet. Add your first property to get started.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub Tab View: Add property wizard */}
+                {activeSubTab === 'add' && (
+                  <div className="bg-white rounded-3xl border border-slate-100 shadow-xs max-w-2xl mx-auto overflow-hidden mt-6">
+                    <div className="border-b border-slate-100 p-5 flex justify-between items-center bg-slate-50">
+                      <div>
+                        <h3 className="font-bold text-slate-800 text-sm">Property Creator Wizard</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Publish your luxury spaces to the marketplace instantly.</p>
+                      </div>
+                      <PlusCircle className="h-6 w-6 text-[#ff445a]" />
+                    </div>
+
+                    <form onSubmit={handleFormSubmit} className="p-6 space-y-6">
+                      {formSuccess && (
+                        <div className="bg-emerald-50 border border-emerald-100 text-emerald-800 p-4 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-emerald-600" />
+                          <span>Listing published live to networks successfully!</span>
+                        </div>
+                      )}
+
+                      {formError && (
+                        <div className="bg-rose-50 border border-rose-100 text-rose-800 p-4 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-2">
+                          <XCircle className="h-5 w-5 text-rose-600" />
+                          <span>{formError}</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500">Property Title *</label>
                           <input
                             type="text"
                             required
-                            value={newRequestForm.property}
-                            onChange={e => setNewRequestForm(f => ({ ...f, property: e.target.value }))}
-                            placeholder="e.g. Luxury Villa - Malibu"
-                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 transition"
+                            placeholder="e.g. Architectural Cliffside Villa"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-600">Issue Description *</label>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-500">Category</label>
+                          <select
+                            value={type}
+                            onChange={(e) => setType(e.target.value as any)}
+                            className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white capitalize"
+                          >
+                            <option value="apartment">apartment</option>
+                            <option value="villa">villa</option>
+                            <option value="house">house</option>
+                            <option value="studio">studio</option>
+                          </select>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-xs font-bold text-slate-500">Description *</label>
                           <textarea
                             required
                             rows={3}
-                            value={newRequestForm.issue}
-                            onChange={e => setNewRequestForm(f => ({ ...f, issue: e.target.value }))}
-                            placeholder="Describe the maintenance problem…"
-                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 transition resize-none"
+                            placeholder="Describe what makes this listing unique..."
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-600">Reported By</label>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-500">Address Location *</label>
                           <input
                             type="text"
-                            value={newRequestForm.guest}
-                            onChange={e => setNewRequestForm(f => ({ ...f, guest: e.target.value }))}
-                            placeholder="e.g. Tenant Name (optional)"
-                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 transition"
+                            required
+                            placeholder="e.g. Malibu, California"
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                            className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-600">Priority</label>
-                          <select
-                            value={newRequestForm.priority}
-                            onChange={e => setNewRequestForm(f => ({ ...f, priority: e.target.value }))}
-                            className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 transition bg-white cursor-pointer"
-                          >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                          </select>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-500">Rent Price (USD / night) *</label>
+                          <input
+                            type="number"
+                            required
+                            min="10"
+                            value={price}
+                            onChange={(e) => setPrice(Number(e.target.value))}
+                            className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
+                          />
                         </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-500">Beds count</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={beds}
+                            onChange={(e) => setBeds(Number(e.target.value))}
+                            className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-500">Baths count</label>
+                          <input
+                            type="number"
+                            min="1"
+                            step="0.5"
+                            value={baths}
+                            onChange={(e) => setBaths(Number(e.target.value))}
+                            className="w-full mt-1.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Image URLs & Presets */}
+                      <div className="space-y-3">
+                        <label className="text-xs font-bold text-slate-500">Cover Image URL *</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            required
+                            placeholder="Select a preset below or enter unsplash link"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500 focus:bg-white"
+                          />
+                        </div>
+                        
+                        <div className="space-y-1.5 pt-1.5">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Or quick select curated preset:</span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {PRESET_IMAGES.map((img) => (
+                              <button
+                                key={img.name}
+                                type="button"
+                                onClick={() => setImageUrl(img.url)}
+                                className={`p-2 rounded-xl border text-[10px] font-bold text-left truncate cursor-pointer transition ${
+                                  imageUrl === img.url ? 'bg-blue-50 border-blue-400 text-blue-800' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                                }`}
+                              >
+                                {img.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Amenities Creator */}
+                      <div className="space-y-3">
+                        <label className="text-xs font-bold text-slate-500">List of Amenities</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="e.g. Infinity Pool, Fast Wi-Fi, Chef's Kitchen"
+                            value={customAmenity}
+                            onChange={(e) => setCustomAmenity(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddAmenity(); } }}
+                            className="flex-grow px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-sans text-xs focus:outline-none focus:border-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddAmenity}
+                            className="bg-[#ff445a] hover:bg-[#e63046] text-white font-extrabold text-xs px-4 rounded-xl cursor-pointer"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-1.5 pt-1.5">
+                          {amenities.map((amenity, idx) => (
+                            <span key={idx} className="bg-slate-50 text-slate-600 border border-slate-200 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
+                              <span>{amenity}</span>
+                              <button type="button" onClick={() => handleRemoveAmenity(amenity)} className="text-slate-400 hover:text-rose-600 font-bold">&times;</button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-100 flex justify-end">
                         <button
                           type="submit"
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-3 rounded-xl cursor-pointer transition shadow-md"
+                          className="bg-[#ff445a] hover:bg-[#e63046] text-white font-extrabold text-sm px-6 py-3 rounded-xl shadow-md transition cursor-pointer"
                         >
-                          Submit Request
+                          Publish Listing
                         </button>
-                      </form>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {/* TAB: FIND TENANTS / BOOKINGS QUEUE */}
+            {activeSubTab === 'bookings' && (
+              <div className="space-y-6 animate-fadeIn" id="owner-bookings-portal-view">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Tenant Stays Queue</h2>
+                  <p className="text-xs text-slate-400 mt-1">Approve, decline, or review stay reservations across your listings.</p>
+                </div>
+
+                {ownerBookings.length > 0 ? (
+                  <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-xs">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-450 uppercase tracking-widest font-sans">
+                            <th className="p-4">Listing Space</th>
+                            <th className="p-4">Renter Guest</th>
+                            <th className="p-4">Stay Period</th>
+                            <th className="p-4">Paid Total</th>
+                            <th className="p-4">Status</th>
+                            <th className="p-4 text-right">Approval controls</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-55 text-xs">
+                          {ownerBookings.map((booking) => (
+                            <tr key={booking.id} className="hover:bg-slate-50/50 transition">
+                              <td className="p-4 font-bold text-slate-900 truncate max-w-[180px]">{booking.listingTitle}</td>
+                              <td className="p-4 font-semibold text-slate-700">{booking.renterName}</td>
+                              <td className="p-4 text-slate-400">
+                                {booking.startDate} &rarr; {booking.endDate} 
+                                <span className="block font-mono text-[9px] mt-0.5">({booking.nights} nights)</span>
+                              </td>
+                              <td className="p-4 font-extrabold text-slate-800">${booking.totalPrice}</td>
+                              <td className="p-4">
+                                <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                                  booking.status === 'approved' 
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                    : booking.status === 'pending'
+                                      ? 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse'
+                                      : 'bg-rose-55 text-rose-700 border-rose-100'
+                                }`}>
+                                  {booking.status}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                {booking.status === 'pending' ? (
+                                  <div className="flex gap-1.5 justify-end">
+                                    <button
+                                      onClick={async () => {
+                                        if (window.confirm('Reject this reservation stay?')) {
+                                          await onUpdateBookingStatus(booking.id, 'declined');
+                                        }
+                                      }}
+                                      className="bg-rose-50 hover:bg-rose-100 border border-rose-200/50 text-rose-700 p-1.5 rounded-lg cursor-pointer transition"
+                                      title="Reject Request"
+                                    >
+                                      <XCircle className="h-4.5 w-4.5" />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        await onUpdateBookingStatus(booking.id, 'approved');
+                                      }}
+                                      className="bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded-lg shadow-xs cursor-pointer transition"
+                                      title="Approve Request"
+                                    >
+                                      <CheckCircle className="h-4.5 w-4.5" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400 font-mono">Processed</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center space-y-4 max-w-sm mx-auto shadow-xs">
+                    <CalendarCheck2 className="h-10 w-10 text-slate-300 mx-auto" />
+                    <h4 className="font-bold text-slate-800 text-sm">Stay queue empty</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">Guests haven't requested bookings on your active properties yet.</p>
                   </div>
                 )}
               </div>
-            );
-          })()}
+            )}
 
-
-
-          {/* TAB 8: CONTACTS */}
-          {activeTab === 'contacts' && (
-            <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xs overflow-hidden animate-fadeIn">
-              <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="text-lg font-bold text-slate-800">Leasing Contact Directory</h3>
-                <p className="text-xs text-slate-400 mt-0.5 font-medium">Keep phone numbers, emails, and address logs of clients and contractors synced.</p>
-              </div>
-
-              <div className="divide-y divide-slate-100 text-sm">
-                {/* Contact list mapping */}
-                <div className="p-5 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-sky-50 text-sky-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">YM</div>
-                    <div>
-                      <p className="font-bold text-slate-800">Yosef Melaku</p>
-                      <p className="text-xs text-slate-400">Renter/Tenant • yosefmelaku9876@gmail.com</p>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-sky-50 text-sky-700 px-2.5 py-1 rounded-full border border-sky-100 font-bold uppercase tracking-wider scale-90">Tenant</span>
+            {/* TAB: MAINTENANCE & ALERTS */}
+            {activeSubTab === 'maintenance' && (
+              <div className="space-y-6 animate-fadeIn" id="owner-maintenance-portal-view">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Maintenance Dispatch</h2>
+                  <p className="text-xs text-slate-400 mt-1">Review active reports and coordinate resolution with tenants.</p>
                 </div>
 
-                <div className="p-5 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-emerald-50 text-emerald-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">PH</div>
-                    <div>
-                      <p className="font-bold text-slate-800">Premium Host Inc</p>
-                      <p className="text-xs text-slate-400">Real Estate Partner • partner@renthub.app</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-xs">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span>Open Alerts</span>
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
                     </div>
+                    <p className="mt-2 text-2xl font-extrabold text-slate-950">{dispatchSummary.openCount}</p>
                   </div>
-                  <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-100 font-bold uppercase tracking-wider scale-90">Contractor</span>
+                  <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-xs">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span>In Review</span>
+                      <Clock3 className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <p className="mt-2 text-2xl font-extrabold text-slate-950">{dispatchSummary.reviewCount}</p>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-xs">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <span>Resolved</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <p className="mt-2 text-2xl font-extrabold text-slate-950">{dispatchSummary.resolvedCount}</p>
+                  </div>
                 </div>
 
-                <div className="p-5 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-amber-50 text-amber-700 w-10 h-10 rounded-full flex items-center justify-center font-bold">AK</div>
-                    <div>
-                      <p className="font-bold text-slate-800">Abebe Kebede</p>
-                      <p className="text-xs text-slate-400">Office Tenant • abebe@techcorp.com</p>
-                    </div>
+                <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-xs">
+                  <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                    <Wrench className="h-4 w-4 text-emerald-600" />
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Dispatch Queue</h3>
                   </div>
-                  <span className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full border border-amber-100 font-bold uppercase tracking-wider scale-90">Tenant</span>
-                </div>
-              </div>
-            </div>
-          )}
+                  <div className="divide-y divide-slate-100">
+                    {maintenanceRequests.map((request) => (
+                      <div key={request.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-slate-900 text-sm">{request.property}</p>
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              request.priority === 'high' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {request.priority}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">{request.guest} &bull; {request.issue}</p>
+                          <p className="text-[10px] text-slate-450 mt-1">Updated {request.updatedAt}</p>
+                        </div>
 
-        </main>
-      </div>
-
-
-            {/* POPUP MODAL: REPORT DETAILS DIALOG */}
-      {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-4xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-fadeIn">
-            <div className="border-b border-slate-100 p-6 flex justify-between items-center bg-slate-50">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 px-3 py-1 rounded-full">
-                  Real Estate Report Ledger
-                </span>
-                <h3 className="font-bold text-slate-900 text-lg mt-2 capitalize">
-                  {selectedReport.replace('-', ' ')} Statement
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedReport(null)}
-                className="text-slate-400 hover:text-slate-900 text-xl font-bold p-1 bg-white hover:bg-slate-100 rounded-lg cursor-pointer"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[70vh] space-y-4">
-              <p className="text-sm text-slate-500">Report data for: <span className="font-bold text-slate-800 capitalize">{selectedReport.replace(/-/g, ' ')}</span></p>
-              <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
-                      <th className="p-3">Property</th>
-                      <th className="p-3">Tenant</th>
-                      <th className="p-3">Period</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {ownerBookings.map(b => (
-                      <tr key={b.id} className="hover:bg-slate-50/40">
-                        <td className="p-3 font-semibold text-slate-800">{b.listingTitle}</td>
-                        <td className="p-3 text-slate-700">{b.renterName}</td>
-                        <td className="p-3 text-slate-400 font-mono">{b.startDate} &rarr; {b.endDate}</td>
-                        <td className="p-3">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${b.paymentStatus === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>{b.paymentStatus}</span>
-                        </td>
-                        <td className="p-3 font-extrabold text-slate-900">${b.totalPrice.toFixed(2)}</td>
-                      </tr>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                            request.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700' : request.status === 'In Review' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {request.status}
+                          </span>
+                          <select
+                            value={request.status}
+                            onChange={(e) => handleMaintenanceStatusChange(request.id, e.target.value)}
+                            className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 outline-none"
+                          >
+                            <option value="Open">Open</option>
+                            <option value="In Review">In Review</option>
+                            <option value="Resolved">Resolved</option>
+                          </select>
+                        </div>
+                      </div>
                     ))}
-                    {ownerBookings.length === 0 && (
-                      <tr><td colSpan={5} className="p-6 text-center text-slate-400 italic">No transactions found.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            )}
 
+            {/* TAB: ORGANISATION VIEW */}
+            {activeSubTab === 'organisation' && (
+              <div className="space-y-6 animate-fadeIn" id="owner-org-portal-view">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Organisation settings</h2>
+                  <p className="text-xs text-slate-400 mt-1">Manage your agency credentials, members, and portfolio status.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Agency profile */}
+                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs space-y-4 lg:col-span-2">
+                    <h3 className="text-sm font-bold text-slate-800">Portfolio Profile Details</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Agency Name</label>
+                        <p className="text-xs font-bold text-slate-700 mt-1">RentHub Studio Properties Ltd.</p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Primary Owner</label>
+                        <p className="text-xs font-bold text-slate-700 mt-1">{currentUser?.name ?? 'yosef Melaku'}</p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Contact Email</label>
+                        <p className="text-xs font-bold text-slate-700 mt-1 font-mono">{currentUser?.email}</p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Service Level</label>
+                        <p className="text-xs font-bold text-emerald-600 mt-1 flex items-center gap-1">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>Professional Trial Mode</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team Members */}
+                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs space-y-4">
+                    <h3 className="text-sm font-bold text-slate-800">Members List (1)</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-50 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">{initials}</div>
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 block">{currentUser?.name ?? 'yosef Melaku'}</span>
+                            <span className="text-[9px] text-slate-400 block font-mono">{currentUser?.email}</span>
+                          </div>
+                        </div>
+                        <span className="bg-blue-50 text-blue-700 text-[9px] font-bold uppercase px-2 py-0.5 rounded border border-blue-100">Owner</span>
+                      </div>
+                    </div>
+                    <button className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 py-2.5 rounded-2xl text-xs font-extrabold text-slate-600 transition">
+                      + Invite Team Member
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* TAB: REPORTS */}
+            {activeSubTab === 'reports' && (
+              <div className="space-y-6 animate-fadeIn text-slate-800" id="owner-reports-portal-view">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Financial Reports</h2>
+                  <p className="text-xs text-slate-400 mt-1">Review tax-ready accounting ledgers, transaction records, and earnings.</p>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs space-y-6">
+                  <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3">Available Statements</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border border-slate-100 hover:border-slate-200 p-4 rounded-2xl flex items-center justify-between transition cursor-pointer group">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-slate-800 group-hover:text-emerald-600 transition">Income Statement</h4>
+                        <p className="text-[10px] text-slate-400">Review net earnings, expenses, and total gross profit margins.</p>
+                      </div>
+                      <ArrowUpRight className="h-4.5 w-4.5 text-slate-400 group-hover:text-emerald-500 transition" />
+                    </div>
+
+                    <div className="border border-slate-100 hover:border-slate-200 p-4 rounded-2xl flex items-center justify-between transition cursor-pointer group">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-slate-800 group-hover:text-emerald-600 transition">Rent Ledger</h4>
+                        <p className="text-[10px] text-slate-400">Detailed logs of paid bookings, cancellations, and overdue balances.</p>
+                      </div>
+                      <ArrowUpRight className="h-4.5 w-4.5 text-slate-400 group-hover:text-emerald-500 transition" />
+                    </div>
+
+                    <div className="border border-slate-100 hover:border-slate-200 p-4 rounded-2xl flex items-center justify-between transition cursor-pointer group">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-slate-800 group-hover:text-emerald-600 transition">Expense report</h4>
+                        <p className="text-[10px] text-slate-400">Breakdown of maintenance costs, commissions, and platform fees.</p>
+                      </div>
+                      <ArrowUpRight className="h-4.5 w-4.5 text-slate-400 group-hover:text-emerald-500 transition" />
+                    </div>
+
+                    <div className="border border-slate-100 hover:border-slate-200 p-4 rounded-2xl flex items-center justify-between transition cursor-pointer group">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-slate-800 group-hover:text-emerald-600 transition">SOC-2 Audit Ledger</h4>
+                        <p className="text-[10px] text-slate-400">Compliance transaction logging for security certifications.</p>
+                      </div>
+                      <ArrowUpRight className="h-4.5 w-4.5 text-slate-400 group-hover:text-emerald-500 transition" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: INTEGRATIONS */}
+            {activeSubTab === 'integrations' && (
+              <div className="space-y-6 animate-fadeIn" id="owner-integrations-portal-view">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">API Integrations</h2>
+                  <p className="text-xs text-slate-400 mt-1">Connect your property ledger directly with accounting & payment providers.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  
+                  {/* QuickBooks */}
+                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                        <Landmark className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-800">QuickBooks Online</h4>
+                      <p className="text-[10px] text-slate-450 leading-relaxed">Direct synchronization of rent received, maintenance invoices, and tax filings.</p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Disabled</span>
+                      <button className="bg-slate-150 hover:bg-slate-200 text-slate-700 text-[10px] font-bold px-3 py-1.5 rounded-lg cursor-pointer">Connect</button>
+                    </div>
+                  </div>
+
+                  {/* Stripe */}
+                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <DollarSign className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-800">Stripe Payments</h4>
+                      <p className="text-[10px] text-slate-450 leading-relaxed">Receive credit card and ACH rent payments directly to your bank account securely.</p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-[10px] text-emerald-600 font-extrabold uppercase">Live / Ready</span>
+                      <button className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-3 py-1.5 rounded-lg cursor-pointer">Configure</button>
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Alerts */}
+                  <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                        <Bell className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-800">WhatsApp Notification Hub</h4>
+                      <p className="text-[10px] text-slate-450 leading-relaxed">Send automated SMS and WhatsApp check-in instructions and rent reminder codes.</p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Disabled</span>
+                      <button className="bg-slate-150 hover:bg-slate-200 text-slate-700 text-[10px] font-bold px-3 py-1.5 rounded-lg cursor-pointer">Connect</button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* TAB: CONTACTS */}
+            {activeSubTab === 'contacts' && (
+              <div className="space-y-6 animate-fadeIn" id="owner-contacts-portal-view">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Tenant & Vendor contacts</h2>
+                  <p className="text-xs text-slate-400 mt-1">Directory of active renters, maintenance specialists, and builders.</p>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          <th className="p-4">Full Name</th>
+                          <th className="p-4">Contact Details</th>
+                          <th className="p-4">Role Classification</th>
+                          <th className="p-4">Associated Property</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        <tr className="hover:bg-slate-50/50 transition">
+                          <td className="p-4 font-bold text-slate-800">Talia S.</td>
+                          <td className="p-4 font-mono text-slate-500">talia.s@example.com <span className="block mt-0.5 text-[10px] text-slate-400">+1 (555) 0192</span></td>
+                          <td className="p-4"><span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[9px] font-bold uppercase px-2 py-0.5 rounded">Renter</span></td>
+                          <td className="p-4 text-slate-500 font-semibold">Cliffside Villa</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/50 transition">
+                          <td className="p-4 font-bold text-slate-800">Mina K.</td>
+                          <td className="p-4 font-mono text-slate-500">mina.k@example.com <span className="block mt-0.5 text-[10px] text-slate-400">+1 (555) 0148</span></td>
+                          <td className="p-4"><span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[9px] font-bold uppercase px-2 py-0.5 rounded">Renter</span></td>
+                          <td className="p-4 text-slate-500 font-semibold">Harbor Loft</td>
+                        </tr>
+                        <tr className="hover:bg-slate-50/50 transition">
+                          <td className="p-4 font-bold text-slate-800">Dave Cooper</td>
+                          <td className="p-4 font-mono text-slate-500">dave.cooper@dispatch.com <span className="block mt-0.5 text-[10px] text-slate-400">+1 (555) 0111</span></td>
+                          <td className="p-4"><span className="bg-amber-50 text-amber-700 border border-amber-100 text-[9px] font-bold uppercase px-2 py-0.5 rounded">HVAC Tech Vendor</span></td>
+                          <td className="p-4 text-slate-400 font-medium">Multiple units</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: MORE SETTINGS */}
+            {activeSubTab === 'more' && (
+              <div className="space-y-6 animate-fadeIn text-slate-800" id="owner-settings-portal-view">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">Portal Configurations</h2>
+                  <p className="text-xs text-slate-400 mt-1">General system configurations and platform settings.</p>
+                </div>
+
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800">Security & Billing</h3>
+                  <p className="text-xs text-slate-500">You are currently logged into Owner Studio on a mock developer account. For database configurations or custom Firestore structures, please review integrations or contact support.</p>
+                  <div className="pt-2">
+                    <button className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer">
+                      Review Security Audits
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </main>
+        </div>
+
+      </div>
     </div>
-    </>
   );
 };

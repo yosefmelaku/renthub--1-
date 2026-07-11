@@ -5,9 +5,12 @@ import { ListingExplorer } from './components/ListingExplorer';
 import { PropertyDetailsModal } from './components/PropertyDetailsModal';
 import { CheckoutPaymentModal } from './components/CheckoutPaymentModal';
 import { RenterDashboard } from './components/RenterDashboard';
+import { PortalLoginPage } from './components/PortalLoginPage';
+import { UpgradePage } from './components/UpgradePage';
 import { OwnerDashboard } from './components/OwnerDashboard';
 import { AuthPage } from './components/AuthPage';
-import { UpgradePage } from './components/UpgradePage';
+
+
 
 import {
   getAllListings,
@@ -277,20 +280,28 @@ export default function App() {
     { label: 'Revenue Pulse', value: '$128.4k', tone: 'violet' },
   ];
 
-  return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between" id="app-root-layout">
-      <div>
-        <Navbar
-          currentTab={currentTab === 'auth' ? 'explore' : currentTab}
-          setCurrentTab={handleTabChange}
-          currentUser={currentUser}
-          globalSearchTerm={globalSearchTerm}
-          setGlobalSearchTerm={setGlobalSearchTerm}
-          onLoginClick={() => handleTabChange('auth')}
-          onLogout={handleLogout}
-        />
+  if (!currentUser) {
+    return <PortalLoginPage onLogin={handleAuthSuccess} />;
+  }
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  const isOwner = currentTab === 'owner-dashboard';
+
+  return (
+    <div className={isOwner ? "min-h-screen flex flex-col" : "min-h-screen bg-slate-50/50 flex flex-col justify-between"} id="app-root-layout">
+      <div className={isOwner ? "flex-1 flex flex-col" : ""}>
+        {!isOwner && (
+          <Navbar
+            currentTab={currentTab === 'auth' ? 'explore' : currentTab}
+            setCurrentTab={handleTabChange}
+            currentUser={currentUser}
+            globalSearchTerm={globalSearchTerm}
+            setGlobalSearchTerm={setGlobalSearchTerm}
+            onLoginClick={() => handleTabChange('auth')}
+            onLogout={handleLogout}
+          />
+        )}
+
+        <main className={isOwner ? "flex-1 flex flex-col" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
           {accessNotice && (
             <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm" role="alert">
               {accessNotice}
@@ -552,7 +563,9 @@ export default function App() {
                   await fetchListings();
                   await fetchBookings();
                 }}
-                onUpgradeClick={() => setShowUpgradePage(true)}
+                currentUser={currentUser}
+                onLogout={handleLogout}
+                onSwitchToTenant={() => handleTabChange('renter-dashboard')}
               />
             </div>
           )}
