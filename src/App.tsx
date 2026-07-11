@@ -243,7 +243,7 @@ export default function App() {
       await fetchBookings();
       setCurrentTab('renter-dashboard');
     } catch (err) {
-      console.error('Checkout transaction transaction failed:', err);
+      console.error('Checkout transaction failed:', err);
       alert('Transaction processing error. Please try again.');
     }
   };
@@ -277,32 +277,6 @@ export default function App() {
     { label: 'Revenue Pulse', value: '$128.4k', tone: 'violet' },
   ];
 
-  const brandPresets = [
-    { name: 'Luxora', status: 'Live', accent: 'Emerald' },
-    { name: 'Harbor', status: 'Review', accent: 'Slate' },
-    { name: 'Northstar', status: 'Live', accent: 'Indigo' },
-  ];
-
-  const auditTrail = [
-    { event: 'Booking authorized', actor: 'Tenant Admin', time: '08:22', result: 'Approved' },
-    { event: 'Listing published', actor: 'Host Ops', time: '09:05', result: 'Synced' },
-    { event: 'Refund request', actor: 'Compliance', time: '11:40', result: 'Pending' },
-  ];
-
-  const databaseRows = [
-    { table: 'bookings', rows: '1,248', latency: '12ms', health: 'Healthy' },
-    { table: 'listings', rows: '386', latency: '8ms', health: 'Healthy' },
-    { table: 'payments', rows: '742', latency: '15ms', health: 'Monitoring' },
-  ];
-
-  const ledgerRows = [
-    { entry: 'Reservation Clearing', debit: '$4,200', credit: '$0', balance: '$4,200' },
-    { entry: 'Service Commission', debit: '$0', credit: '$315', balance: '$3,885' },
-    { entry: 'Payout Batch', debit: '$2,100', credit: '$0', balance: '$1,785' },
-  ];
-
-
-
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col justify-between" id="app-root-layout">
       <div>
@@ -324,7 +298,212 @@ export default function App() {
           )}
 
           {currentTab === 'explore' && (
-            <div className="animate-fadeIn">
+            <div className="animate-fadeIn space-y-12">
+              
+              {/* BRAND REDESIGN HERO SECTION */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-6 pb-12">
+                
+                {/* Left Column Text & CTAs */}
+                <div className="lg:col-span-5 space-y-6">
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#0f172a] leading-none">
+                    Simple <br />
+                    <span className="text-[#ff6a42]">management</span> <br />
+                    software for <br />
+                    landlords<span className="text-[#ff445a]">.</span>
+                  </h1>
+                  
+                  <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-md font-sans">
+                    Covering all the bases from listings to rent collection to bookings. RentHub helps you create a more profitable rental portfolio directly from your desktop or mobile.
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-4 pt-2">
+                    <button
+                      onClick={() => handleTabChange('auth')}
+                      className="bg-[#ff445a] hover:bg-[#e63046] text-white font-semibold py-3 px-6 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2 text-sm"
+                    >
+                      Get Started
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const exploreSection = document.getElementById('explore-listings-section');
+                        if (exploreSection) exploreSection.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3 px-6 rounded-xl transition duration-200 text-sm"
+                    >
+                      Watch a Demo
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Column Custom Rebranded CSS Mockup Device */}
+                <div className="lg:col-span-7 relative hidden md:block">
+                  <div className="bg-[#122846] rounded-3xl p-4 shadow-2xl relative border border-slate-800 max-w-2xl ml-auto w-full aspect-[16/10] overflow-hidden">
+                    <div className="bg-white rounded-2xl w-full h-full overflow-hidden flex flex-row text-[9px] text-slate-600 select-none">
+                      
+                      {/* Rebranded Mock Sidebar */}
+                      <div className="w-[115px] bg-[#0c162b] text-slate-400 p-2.5 flex flex-col justify-between flex-shrink-0">
+                        <div>
+                          {/* Generic abstract logo representation */}
+                          <div className="flex items-center gap-1.5 mb-5 px-1">
+                            <div className="h-3 w-3 bg-emerald-400 rounded-sm rotate-45 flex items-center justify-center">
+                              <div className="h-1.5 w-1.5 bg-[#0c162b] rounded-sm"></div>
+                            </div>
+                            <span className="font-extrabold text-white text-[10px]">RentHub</span>
+                          </div>
+                          
+                          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-1 px-2 rounded-md text-[8px] mb-3">
+                            + Create new
+                          </button>
+                          
+                          {/* Menu options mirroring the screenshot structure */}
+                          <div className="space-y-1">
+                            <div className="bg-blue-900/40 text-blue-400 font-semibold px-2 py-1 rounded flex items-center gap-1.5">
+                              <div className="h-1.5 w-1.5 bg-blue-400 rounded-full"></div>
+                              Dashboard
+                            </div>
+                            <div className="px-2 py-1 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5">
+                              <div className="h-1.5 w-1.5 bg-slate-500 rounded-full"></div>
+                              Properties
+                            </div>
+                            <div className="px-2 py-1 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5">
+                              <div className="h-1.5 w-1.5 bg-slate-500 rounded-full"></div>
+                              Transactions
+                            </div>
+                            <div className="px-2 py-1 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5">
+                              <div className="h-1.5 w-1.5 bg-slate-500 rounded-full"></div>
+                              Reports
+                            </div>
+                            <div className="px-2 py-1 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5">
+                              <div className="h-1.5 w-1.5 bg-slate-500 rounded-full"></div>
+                              Listings
+                            </div>
+                            <div className="px-2 py-1 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5">
+                              <div className="h-1.5 w-1.5 bg-slate-500 rounded-full"></div>
+                              Maintenance
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-[7px] text-slate-500 px-1">v1.2 Cloud Active</div>
+                      </div>
+
+                      {/* Mock Main Panel Area */}
+                      <div className="flex-1 bg-slate-50 flex flex-col overflow-hidden">
+                        
+                        {/* Mock Header Search/Profile bar */}
+                        <div className="h-8 border-b border-slate-100 bg-white px-3 flex items-center justify-between">
+                          <div className="bg-slate-100 rounded-full px-2 py-1 w-32 text-slate-400 text-[8px] flex items-center gap-1">
+                            <span>🔍</span> Search everything...
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 bg-rose-500 rounded-full animate-pulse"></span>
+                            <span className="font-semibold text-slate-700">Jane Cooper</span>
+                            <div className="h-4 w-4 bg-slate-200 rounded-full"></div>
+                          </div>
+                        </div>
+
+                        {/* Mock Dashboard Widgets */}
+                        <div className="flex-1 p-3 overflow-y-auto space-y-3">
+                          <div>
+                            <h2 className="text-xs font-bold text-slate-800">Hello Jane,</h2>
+                            <p className="text-[7px] text-slate-400">Here is your portfolio overview overview.</p>
+                          </div>
+
+                          {/* Quick Summary Cards */}
+                          <div className="grid grid-cols-4 gap-2">
+                            <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                              <p className="text-[7px] text-slate-400 uppercase">Rent received</p>
+                              <p className="text-[10px] font-bold text-slate-800 mt-1">$6,876.00</p>
+                              <div className="h-1 bg-emerald-500/20 rounded-full mt-1.5 overflow-hidden">
+                                <div className="h-full bg-emerald-500 w-[80%] rounded-full"></div>
+                              </div>
+                            </div>
+                            <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                              <p className="text-[7px] text-slate-400 uppercase">In progress</p>
+                              <p className="text-[10px] font-bold text-slate-800 mt-1">$2,500.00</p>
+                              <div className="h-1 bg-amber-500/20 rounded-full mt-1.5 overflow-hidden">
+                                <div className="h-full bg-amber-500 w-[45%] rounded-full"></div>
+                              </div>
+                            </div>
+                            <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                              <p className="text-[7px] text-slate-400 uppercase">Upcoming</p>
+                              <p className="text-[10px] font-bold text-slate-800 mt-1">$758.82</p>
+                              <div className="h-1 bg-sky-500/20 rounded-full mt-1.5 overflow-hidden">
+                                <div className="h-full bg-sky-500 w-[20%] rounded-full"></div>
+                              </div>
+                            </div>
+                            <div className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                              <p className="text-[7px] text-slate-400 uppercase">Overdue</p>
+                              <p className="text-[10px] font-bold text-rose-600 mt-1">$1,200.00</p>
+                              <div className="h-1 bg-rose-500/20 rounded-full mt-1.5 overflow-hidden">
+                                <div className="h-full bg-rose-500 w-[60%] rounded-full"></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Cashflow Chart Represented in Custom CSS */}
+                          <div className="grid grid-cols-12 gap-2">
+                            <div className="col-span-8 bg-white p-2.5 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-between">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-bold text-slate-800 text-[8px]">Cashflow Pulse</span>
+                                <span className="text-[6px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded">Jan 2026 - Jun 2026</span>
+                              </div>
+                              <div className="flex items-end justify-between h-14 pt-2 border-b border-slate-100">
+                                <div className="flex flex-col items-center gap-1 w-6">
+                                  <div className="w-1.5 bg-blue-600 h-6 rounded-t-sm"></div>
+                                  <span className="text-[5px] text-slate-400">Jan</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-1 w-6">
+                                  <div className="w-1.5 bg-blue-600 h-8 rounded-t-sm"></div>
+                                  <span className="text-[5px] text-slate-400">Feb</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-1 w-6">
+                                  <div className="w-1.5 bg-blue-600 h-10 rounded-t-sm"></div>
+                                  <span className="text-[5px] text-slate-400">Mar</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-1 w-6">
+                                  <div className="w-1.5 bg-[#ff7a59] h-5 rounded-t-sm"></div>
+                                  <span className="text-[5px] text-slate-400">Apr</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-1 w-6">
+                                  <div className="w-1.5 bg-blue-600 h-11 rounded-t-sm"></div>
+                                  <span className="text-[5px] text-slate-400">May</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-1 w-6">
+                                  <div className="w-1.5 bg-blue-600 h-12 rounded-t-sm"></div>
+                                  <span className="text-[5px] text-slate-400">Jun</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Upgrade Promo Widget */}
+                            <div className="col-span-4 bg-gradient-to-br from-indigo-600 to-blue-700 text-white p-2 rounded-lg flex flex-col justify-between shadow-sm">
+                              <div>
+                                <p className="font-bold text-[8px]">Upgrade Stay</p>
+                                <p className="text-[6px] text-indigo-100 leading-tight mt-1">Unlock seamless check-outs & verified stays.</p>
+                              </div>
+                              <button className="bg-white text-indigo-600 hover:bg-indigo-50 transition-colors font-bold text-[7px] py-1 px-1.5 rounded text-center mt-2">
+                                Upgrade Now
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Browse Listings Header Title */}
+              <div id="explore-listings-section" className="border-t border-slate-100 pt-8">
+                <h3 className="text-xl font-bold text-slate-900">Explore Available Spaces</h3>
+                <p className="text-slate-500 text-xs">Curated boutique residences and stays open for bookings.</p>
+              </div>
+
               {loadingListings ? (
                 <div className="py-20 text-center" id="listings-loading">
                   <div className="h-10 w-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -502,9 +681,6 @@ export default function App() {
             </div>
           )}
         </main>
-
-
-
       </div>
 
       <footer className="bg-white border-t border-gray-100 py-6 mt-12" id="app-footer">
