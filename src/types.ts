@@ -11,6 +11,8 @@ export interface PropertyListing {
   title: string;
   description: string;
   location: string;
+  lat?: number;
+  lng?: number;
   price: number; // per night
   type: 'house' | 'apartment' | 'villa' | 'studio' | 'office' | 'realestate';
   beds: number;

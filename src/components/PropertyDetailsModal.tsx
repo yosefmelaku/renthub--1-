@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PropertyListing } from '../types';
 import { X, Calendar, ShieldCheck, MapPin, Bed, Bath, Star, Sparkles, AlertCircle } from 'lucide-react';
+import MapView from './MapView';
 
 interface PropertyDetailsModalProps {
   property: PropertyListing | null;
@@ -165,6 +166,14 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Location Map */}
+          {property.lat && property.lng && (
+            <div className="space-y-2">
+              <h4 className="font-sans font-bold text-gray-900 text-sm uppercase tracking-wider">Location</h4>
+              <MapView lat={property.lat} lng={property.lng} label={property.location} />
+            </div>
+          )}
         </div>
 
         {/* Right Side: Price Calculator & Booking Widget (Col 8-12) */}

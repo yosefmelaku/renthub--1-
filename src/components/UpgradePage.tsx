@@ -6,12 +6,21 @@ interface UpgradePageProps {
 }
 
 export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
+  const trialStartKey = 'renthub_trial_start';
   const [units, setUnits] = useState(3);
   const [showFullFeatures, setShowFullFeatures] = useState(false);
   const [upgradedPlan, setUpgradedPlan] = useState<string | null>(null);
+  const [trialDaysLeft] = useState(() => {
+    const stored = localStorage.getItem(trialStartKey);
+    const startDate = stored ? new Date(stored) : new Date();
+    if (!stored) localStorage.setItem(trialStartKey, startDate.toISOString());
+    const elapsed = Math.floor((Date.now() - startDate.getTime()) / 86400000);
+    return Math.max(0, 14 - elapsed);
+  });
 
   const handleUpgrade = (plan: string) => {
     setUpgradedPlan(plan);
+    localStorage.removeItem(trialStartKey);
     setTimeout(() => setUpgradedPlan(null), 3000);
   };
 
@@ -44,10 +53,17 @@ export const UpgradePage: React.FC<UpgradePageProps> = ({ onClose }) => {
     <div className="fixed inset-0 z-[9999] bg-white overflow-y-auto flex flex-col" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
 
       {/* Orange trial banner */}
-      <div className="bg-[#ff9f00] text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shrink-0">
-        <Info className="h-4 w-4 fill-white text-[#ff9f00]" />
-        <span>Trial ends in 14 days. <span className="underline cursor-pointer">Upgrade Now</span></span>
-      </div>
+      {trialDaysLeft > 0 ? (
+        <div className="bg-[#ff9f00] text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shrink-0">
+          <Info className="h-4 w-4 fill-white text-[#ff9f00]" />
+          <span>Trial ends in {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'}. <span className="underline cursor-pointer" onClick={onClose}>Upgrade Now</span></span>
+        </div>
+      ) : (
+        <div className="bg-rose-600 text-white py-2 px-4 text-xs font-bold text-center flex items-center justify-center gap-1.5 shrink-0">
+          <Info className="h-4 w-4 fill-white text-rose-600" />
+          <span>Trial expired. <span className="underline cursor-pointer" onClick={onClose}>Upgrade Now</span></span>
+        </div>
+      )}
 
       {/* Nav bar */}
       <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0">

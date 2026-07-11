@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PropertyListing, Booking } from '../types';
+import MapView from './MapView';
 import { 
   Building2, LayoutGrid, Users, PieChart, Wrench, Sparkles, MapPin, RefreshCw, Upload, 
   Image, Trash2, CalendarCheck2, XCircle, CheckCircle, Clock3, AlertTriangle, 
@@ -1016,6 +1017,11 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
                         <div className="flex items-center text-xs text-slate-400">
                           <MapPin className="h-3 w-3 mr-1" />{property.location}
                         </div>
+                        {property.lat && property.lng && (
+                          <div className="rounded-lg overflow-hidden border border-slate-100" style={{ height: '120px', width: '100%' }}>
+                            <MapView lat={property.lat} lng={property.lng} />
+                          </div>
+                        )}
                         <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
                           <span className="font-bold text-slate-800">${property.price}/night</span>
                           <span className="text-slate-400">{property.beds}bd · {property.baths}ba</span>
@@ -1712,5 +1718,6 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
       )}
 
     </div>
+    </>
   );
 };
